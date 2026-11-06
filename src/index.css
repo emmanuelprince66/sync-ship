@@ -55,6 +55,11 @@
     linear-gradient(145deg, #09261C 0%, #174A32 52%, #286B43 100%);
 }
 
+@keyframes drawerIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
 @keyframes appLoaderBar {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(200%); }

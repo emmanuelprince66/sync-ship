@@ -12,7 +12,7 @@ type ModalProps = {
   /** Overlay tint/blur/padding. Defaults to the design's most common modal overlay. */
   overlayClassName?: string
   /** "center" for dialogs, "right" for side drawers. */
-  placement?: 'center' | 'right'
+  placement?: 'center' | 'right' | 'left'
   /** Accessible name. Pass it when the dialog has no <ModalHeader> (which provides one). */
   title?: string
   /** @deprecated Use ModalHeader or `title` — kept for compatibility. */
@@ -26,7 +26,7 @@ type ModalProps = {
 export function Modal({ open, onClose, children, panelClassName, overlayClassName = 'bg-[#09261C]/40 p-4 backdrop-blur-[2px]', placement = 'center', title }: ModalProps) {
   return <Dialog.Root open={open} onOpenChange={next => { if (!next) onClose() }}>
     <Dialog.Portal>
-      <Dialog.Overlay className={cn('fixed inset-0 z-50 flex', placement === 'center' ? 'items-center justify-center' : 'justify-end', overlayClassName)}>
+      <Dialog.Overlay className={cn('fixed inset-0 z-50 flex', placement === 'center' ? 'items-center justify-center' : placement === 'left' ? 'justify-start' : 'justify-end', overlayClassName)}>
         <Dialog.Content aria-describedby={undefined} className={cn('outline-none', panelClassName)}>
           {title && <Dialog.Title className="sr-only">{title}</Dialog.Title>}
           {children}

@@ -5,7 +5,7 @@ export type IconName =
   | 'search' | 'plus' | 'arrow' | 'chevron' | 'location' | 'scale' | 'trash'
   | 'link' | 'user' | 'card' | 'check' | 'copy' | 'clock' | 'download' | 'more'
   | 'logout' | 'building' | 'bank' | 'shield' | 'close' | 'filter' | 'route'
-  | 'eye' | 'eyeOff'
+  | 'eye' | 'eyeOff' | 'menu'
 
 /** The design's stroke icon set (24px grid, currentColor). */
 export function Icon({ name, size = 20, stroke = 1.8 }: { name: IconName; size?: number; stroke?: number }) {
@@ -38,6 +38,7 @@ export function Icon({ name, size = 20, stroke = 1.8 }: { name: IconName; size?:
     bank: <><path d="m3 9 9-6 9 6M5 10v8m4-8v8m6-8v8m4-8v8M3 21h18M2 18h20"/></>,
     shield: <><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m9 12 2 2 4-5"/></>,
     close: <path d="m6 6 12 12M18 6 6 18"/>,
+    menu: <path d="M4 7h16M4 12h16M4 17h10"/>,
     eye: <><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></>,
     eyeOff: <><path d="M10.6 5.1A10.9 10.9 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-2.4 3.3M6.6 6.6C3.8 8.3 2 12 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="m3 3 18 18"/></>,
     filter: <path d="M4 5h16M7 12h10M10 19h4"/>,

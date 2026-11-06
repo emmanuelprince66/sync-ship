@@ -5,7 +5,8 @@ import { Logo } from '@/components/ui/Logo'
 import { cn } from '@/lib/cn'
 import { paths } from '@/routes/paths'
 import { AccountMenu } from './AccountMenu'
-import { useSidebar } from './hooks'
+import { Modal } from '@/components/ui/Modal'
+import { useMobileSidebar, useSidebar } from './hooks'
 import { navItems } from './nav'
 
 /**
@@ -18,13 +19,14 @@ const itemClass = (active: boolean) => cn('flex w-full items-center gap-3 rounde
 const activeStyle = ({ isActive }: { isActive: boolean }): CSSProperties | undefined =>
   isActive ? { backgroundColor: '#FFFFFF', color: '#286B43' } : undefined
 
-export function Sidebar() {
+/** Logo, links, promo and account block. Shared by the desktop sidebar and the mobile drawer. */
+function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const { activeShipments } = useSidebar()
 
-  return <aside className="fixed inset-y-0 left-0 z-30 hidden w-[244px] flex-col bg-[#286B43] px-4 py-6 text-white lg:flex">
+  return <>
     <div className="px-3"><Logo inverse/></div>
     <nav className="mt-10 space-y-1" aria-label="Main">
-      {navItems.map(item => <NavLink key={item.id} to={item.to} end={item.to === paths.dashboard} className={({ isActive }) => itemClass(isActive)} style={activeStyle}>
+      {navItems.map(item => <NavLink key={item.id} to={item.to} end={item.to === paths.dashboard} onClick={onNavigate} className={({ isActive }) => itemClass(isActive)} style={activeStyle}>
         {({ isActive }) => <>
           <Icon name={item.icon} size={19} stroke={isActive ? 2.2 : 1.8}/><span className="whitespace-nowrap">{item.label}</span>
           {item.id === 'shipments' && activeShipments > 0 && <span className={cn('ml-auto rounded-full px-2 py-0.5 text-[10px] font-extrabold', isActive ? 'bg-[#DCF2D8] text-[#357345]' : 'bg-white/15 text-white')}>{activeShipments}</span>}
@@ -32,7 +34,7 @@ export function Sidebar() {
       </NavLink>)}
     </nav>
     <div className="my-5 border-t border-white/15"/>
-    <NavLink to={paths.settings} className={({ isActive }) => itemClass(isActive)} style={activeStyle}>
+    <NavLink to={paths.settings} onClick={onNavigate} className={({ isActive }) => itemClass(isActive)} style={activeStyle}>
       <Icon name="settings" size={19}/>Settings
     </NavLink>
     <a href="mailto:support@syncship.africa" className="flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-bold text-white/70 hover:bg-white/10 hover:text-white"><Icon name="help" size={19}/>Help & support</a>
@@ -42,5 +44,21 @@ export function Sidebar() {
       <div className="mt-1 text-[11px] leading-4 text-white/60">One dashboard. The best rate for every delivery.</div>
     </div>
     <AccountMenu variant="sidebar"/>
+  </>
+}
+
+/** Fixed sidebar on large screens. */
+export function Sidebar() {
+  return <aside className="fixed inset-y-0 left-0 z-30 hidden w-[244px] flex-col bg-[#286B43] px-4 py-6 text-white lg:flex">
+    <SidebarContent/>
   </aside>
+}
+
+/** The same sidebar sliding in from the left on phones and tablets (opened from the top bar). */
+export function MobileSidebar() {
+  const { open, close } = useMobileSidebar()
+  return <Modal open={open} onClose={close} placement="left" title="Main menu" overlayClassName="bg-[#09261C]/45 backdrop-blur-[2px] lg:hidden" panelClassName="relative flex h-full w-[min(280px,85vw)] animate-[drawerIn_.22s_ease-out] flex-col overflow-y-auto bg-[#286B43] px-4 py-6 text-white shadow-[20px_0_60px_rgba(9,38,28,.25)]">
+    <button type="button" aria-label="Close menu" onClick={close} className="absolute right-4 top-6 flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white transition-colors hover:bg-white/20"><Icon name="close" size={17}/></button>
+    <SidebarContent onNavigate={close}/>
+  </Modal>
 }

@@ -1,21 +1,23 @@
 import { Button } from '@/components/ui/Button'
 import { Icon } from '@/components/ui/Icon'
 import { cn } from '@/lib/cn'
-import { useTopBar } from './hooks'
+import { useMobileSidebar, useTopBar } from './hooks'
 import { ProfileMenu } from './ProfileMenu'
 
 /** Top bar, modelled on sink-inventory's TopBar: greeting + business, notifications, profile menu. */
 export function Header({ title }: { title: string }) {
   const bar = useTopBar()
+  const mobileNav = useMobileSidebar()
 
   return (
     <header className="sticky top-0 z-20 flex h-[74px] items-center justify-between gap-3 border-b border-[#E7EDE9] bg-white/90 px-4 backdrop-blur sm:px-5 md:px-8">
+      <button type="button" aria-label="Open menu" onClick={mobileNav.openMenu} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#E1E9E4] bg-white text-[#286B43] transition-colors hover:bg-[#F3F7F4] lg:hidden"><Icon name="menu" size={19}/></button>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <h1 className="truncate text-[19px] font-extrabold text-[#09261C]">
-            {bar.isOverview ? <>Welcome back{bar.firstName && <>, <span className="text-[#438352]">{bar.firstName}</span></>}</> : title}
+          <h1 className="truncate text-base font-extrabold text-[#09261C] sm:text-[19px]">
+            {bar.isOverview ? <><span className="sm:hidden">Hi</span><span className="hidden sm:inline">Welcome back</span>{bar.firstName && <>, <span className="text-[#438352]">{bar.firstName}</span></>}</> : title}
           </h1>
-          {bar.verification && <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-extrabold', bar.verification.ok ? 'bg-[#E4F2E1] text-[#3C7F4C]' : 'bg-[#FFF4D9] text-[#A16A15]')}>{bar.verification.text}</span>}
+          {bar.verification && <span className={cn('hidden shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold sm:inline-block', bar.verification.ok ? 'bg-[#E4F2E1] text-[#3C7F4C]' : 'bg-[#FFF4D9] text-[#A16A15]')}>{bar.verification.text}</span>}
         </div>
         <div className="truncate text-[11px] font-semibold text-[#87968F]">{bar.businessName ? `Managing ${bar.businessName}` : 'Dashboard overview'} · {bar.date}</div>
       </div>

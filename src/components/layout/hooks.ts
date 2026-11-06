@@ -131,3 +131,11 @@ export function useSetupPrompt() {
     },
   }
 }
+
+/** Open state for the phone/tablet slide-in sidebar. */
+export function useMobileSidebar() {
+  const open = useUiStore(state => state.mobileNavOpen)
+  const setOpen = useUiStore(state => state.setMobileNavOpen)
+  const close = useCallback(() => setOpen(false), [setOpen])
+  return { open, close, openMenu: () => setOpen(true) }
+}
