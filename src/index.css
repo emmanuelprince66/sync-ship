@@ -147,4 +147,6 @@
   body * { visibility: hidden !important; }
   #loyalty-card-print, #loyalty-card-print * { visibility: visible !important; }
   #loyalty-card-print { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; }
+  #transfer-receipt, #transfer-receipt * { visibility: visible !important; }
+  #transfer-receipt { position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; border: 0 !important; }
 }

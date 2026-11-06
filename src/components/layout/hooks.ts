@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router'
 import { useShipments } from '@/api/shipments'
 import { useKycStatus } from '@/api/kyc'
 import { useUnreadNotifications } from '@/api/notifications'
-import { formatLongDate, greeting, initials } from '@/lib/format'
+import { formatLongDate, initials } from '@/lib/format'
 import { paths, settingsPath } from '@/routes/paths'
 import { useAuthStore, type AuthUser } from '@/stores/auth-store'
 import { useBusinessDataStore } from '@/stores/business-data-store'
@@ -90,7 +90,7 @@ export function useTopBar() {
     closeMenu,
     createShipment: () => navigate(paths.createShipment),
     goToBusinessSettings: () => go(settingsPath('Storefront')),
-    goToKyc: () => go(settingsPath('Payments & KYC')),
+    goToKyc: () => go(paths.kyc),
     switchBusiness: () => { setMenuOpen(false); navigate(paths.selectBusiness, { state: { from: pathname } }) },
     openHelp: () => { setMenuOpen(false); window.location.href = 'mailto:support@syncship.africa' },
     signOut: () => {
@@ -100,18 +100,6 @@ export function useTopBar() {
       navigate(paths.login, { replace: true })
     },
   }
-}
-
-/** Header title for the current route; the overview shows a time-based greeting. */
-export function usePageTitle() {
-  const { pathname } = useLocation()
-  const user = useAuthStore(state => state.user)
-  const displayName = user?.firstname || user?.name?.split(/\s+/)[0] || user?.email?.split('@')[0] || ''
-  if (pathname.startsWith(paths.items)) return 'Items'
-  if (pathname.startsWith(paths.shipments)) return 'Shipping & tracking'
-  if (pathname.startsWith(paths.wallet)) return 'Wallet'
-  if (pathname.startsWith(paths.settings)) return 'Settings'
-  return `${greeting()}${displayName ? `, ${displayName}` : ''}`
 }
 
 /** Open state and actions for the "Let's get your business ready" prompt. */

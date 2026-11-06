@@ -13,10 +13,8 @@ const loaders = {
   items: () => import('@/features/items/ItemsPage'),
   storefront: () => import('@/features/storefront/StorefrontPage'),
   wallet: () => import('@/features/wallet/WalletPage'),
-  fundWallet: () => import('@/features/wallet/FundWalletPage'),
-  withdraw: () => import('@/features/wallet/WithdrawPage'),
-  walletTransactions: () => import('@/features/wallet/TransactionsPage'),
   settings: () => import('@/features/settings/SettingsPage'),
+  kyc: () => import('@/features/kyc/KycPage'),
 }
 
 export const pages = {
@@ -28,13 +26,11 @@ export const pages = {
   ItemsPage: lazy(loaders.items),
   StorefrontPage: lazy(loaders.storefront),
   WalletPage: lazy(loaders.wallet),
-  FundWalletPage: lazy(loaders.fundWallet),
-  WithdrawPage: lazy(loaders.withdraw),
-  WalletTransactionsPage: lazy(loaders.walletTransactions),
   SettingsPage: lazy(loaders.settings),
+  KycPage: lazy(loaders.kyc),
 }
 
-/** Downloads the dashboard (and the most-used pages) in the background, ignoring failures. */
+/** Downloads the app's pages in the background, ignoring failures, so navigating never waits on code. */
 export const preloadAppShell = () => {
-  for (const load of [loaders.selectBusiness, loaders.dashboard, loaders.shipments, loaders.items, loaders.wallet]) load().catch(() => undefined)
+  for (const load of [loaders.selectBusiness, loaders.dashboard, loaders.shipments, loaders.items, loaders.wallet, loaders.settings, loaders.createShipment, loaders.storefront]) load().catch(() => undefined)
 }

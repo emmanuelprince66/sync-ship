@@ -17,6 +17,7 @@ export const paths = {
   withdraw: '/wallet/withdraw',
   walletTransactions: '/wallet/transactions',
   settings: '/settings',
+  kyc: '/kyc',
   storefront: '/storefront',
 } as const
 

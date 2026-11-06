@@ -1,6 +1,7 @@
 import { createColumnHelper } from '@tanstack/react-table'
 import type { Shipment } from '@/api/types'
 import { Icon } from '@/components/ui/Icon'
+import { BnplStatusBadge } from '@/features/bnpl'
 import { StatusBadge } from './StatusBadge'
 
 const column = createColumnHelper<Shipment>()
@@ -20,7 +21,7 @@ export const buildShipmentColumns = (onView?: (shipment: Shipment) => void) => [
     header: 'Delivery',
     cell: ({ getValue }) => <div className="flex items-center gap-2"><div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#EFF4F1] text-[10px] font-black text-[#375B4A]">{getValue()[0]}</div><span className="text-xs font-semibold text-[#53665D]">{getValue()}</span></div>,
   }),
-  column.accessor('status', { header: 'Status', cell: ({ getValue, row }) => <StatusBadge status={getValue()} rawStatus={row.original.rawStatus}/> }),
+  column.accessor('status', { header: 'Status', cell: ({ getValue, row }) => <div className="flex flex-col items-start gap-1"><StatusBadge status={getValue()} rawStatus={row.original.rawStatus}/><BnplStatusBadge paymentType={row.original.paymentType} bnplStatus={row.original.bnplStatus} paid={row.original.paymentStatus?.toUpperCase() === 'PAID'}/></div> }),
   column.accessor('amount', { header: 'Amount', meta: { cellClassName: 'text-xs font-extrabold text-[#17382C]' } }),
   column.display({
     id: 'actions',

@@ -4,7 +4,7 @@ import type { BusinessCardModel } from '../hooks/useSelectBusinessPage'
 
 /** One business in the picker. The whole card is the button. */
 export function BusinessCard({ card, onSelect }: { card: BusinessCardModel; onSelect: () => void }) {
-  return <button type="button" onClick={onSelect} className={cn('group flex w-full items-center gap-4 rounded-2xl border bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-[#529661] hover:shadow-[0_14px_34px_rgba(17,49,37,.08)] sm:p-5', card.isCurrent ? 'border-[#529661] ring-4 ring-[#529661]/10' : 'border-[#E0E8E3]')}>
+  return <button type="button" onClick={onSelect} className={cn('group flex w-full min-w-0 items-center gap-3 sm:gap-4 rounded-2xl border bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-[#529661] hover:shadow-[0_14px_34px_rgba(17,49,37,.08)] sm:p-5', card.isCurrent ? 'border-[#529661] ring-4 ring-[#529661]/10' : 'border-[#E0E8E3]')}>
     {card.business.logo
       ? <img src={card.business.logo} alt="" className="h-12 w-12 shrink-0 rounded-xl border border-[#E7EDE9] object-cover"/>
       : <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#EAF5E9] text-sm font-black text-[#438352]">{card.initials}</span>}

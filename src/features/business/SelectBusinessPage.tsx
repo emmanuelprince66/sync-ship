@@ -9,7 +9,7 @@ import { useSelectBusinessPage } from './hooks/useSelectBusinessPage'
 export default function SelectBusinessPage() {
   const page = useSelectBusinessPage()
 
-  return <div className="min-h-screen bg-[#F7F9F7]">
+  return <div className="min-h-screen overflow-x-hidden bg-[#F7F9F7]">
     <header className="sticky top-0 z-20 border-b border-[#E3EAE6] bg-white/90 backdrop-blur">
       <div className="mx-auto flex h-[72px] max-w-4xl items-center justify-between px-5">
         <Logo/>
@@ -37,7 +37,7 @@ export default function SelectBusinessPage() {
         <div className="mb-3 flex items-end justify-between">
           <div><div className="text-sm font-extrabold text-[#17382C]">Your businesses</div><div className="mt-0.5 text-[11px] text-[#899890]">{page.cards.length} {page.cards.length === 1 ? 'business' : 'businesses'}</div></div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
           {page.cards.map(card => <BusinessCard key={card.business.id} card={card} onSelect={() => page.select(card.business)}/>)}
           {page.canCreate && <CreateBusinessTile onClick={page.createModal.open}/>}
         </div>

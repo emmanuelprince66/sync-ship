@@ -2,11 +2,12 @@ import { Suspense } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { AppLoader } from '@/components/ui/AppLoader'
+import { PageLoader } from '@/components/ui/misc'
 import { GuestOnly, RequireAuth, RequireBusiness } from './guards'
 import { pages } from './pages'
 import { paths } from './paths'
 
-const { AuthPage, SelectBusinessPage, DashboardPage, ShipmentsPage, CreateShipmentPage, ItemsPage, StorefrontPage, WalletPage, FundWalletPage, WithdrawPage, WalletTransactionsPage, SettingsPage } = pages
+const { AuthPage, SelectBusinessPage, DashboardPage, ShipmentsPage, CreateShipmentPage, ItemsPage, StorefrontPage, WalletPage, SettingsPage, KycPage } = pages
 
 export const router = createBrowserRouter([
   {
@@ -35,11 +36,14 @@ export const router = createBrowserRouter([
           { path: paths.shipments, element: <ShipmentsPage/> },
           { path: paths.tracking, element: <ShipmentsPage tracking/> },
           { path: paths.wallet, element: <WalletPage/> },
-          { path: paths.fundWallet, element: <FundWalletPage/> },
-          { path: paths.withdraw, element: <WithdrawPage/> },
-          { path: paths.walletTransactions, element: <WalletTransactionsPage/> },
-          { path: paths.settings, element: <Navigate to={`${paths.settings}/storefront`} replace/> },
+          // Old wallet sub-pages now open modals on the wallet page (sink keeps it all on one screen).
+          { path: paths.fundWallet, element: <Navigate to={`${paths.wallet}?action=fund`} replace/> },
+          { path: paths.withdraw, element: <Navigate to={`${paths.wallet}?action=transfer`} replace/> },
+          { path: paths.walletTransactions, element: <Navigate to={paths.wallet} replace/> },
+          // Show the loader during the redirect; a bare <Navigate/> rendered an empty page (white flash).
+          { path: paths.settings, element: <><PageLoader/><Navigate to={`${paths.settings}/storefront`} replace/></> },
           { path: `${paths.settings}/:section`, element: <SettingsPage/> },
+          { path: paths.kyc, element: <KycPage/> },
         ],
       },
         ],

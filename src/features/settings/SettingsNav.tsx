@@ -5,7 +5,7 @@ import { cn } from '@/lib/cn'
 
 const tabs: { name: SettingsSection; icon: IconName; description: string }[] = [
   { name: 'Storefront', icon: 'building', description: 'Store identity and channels' },
-  { name: 'Shipping setup', icon: 'truck', description: 'Pickup and package defaults' },
+  { name: 'Shipping setup', icon: 'truck', description: 'Pickup and delivery partners' },
   { name: 'Payments & KYC', icon: 'wallet', description: 'Payments, wallet and verification' },
   { name: 'Team & users', icon: 'user', description: 'Employee accounts and roles' },
   { name: 'Communications', icon: 'bell', description: 'Customer and order updates' },

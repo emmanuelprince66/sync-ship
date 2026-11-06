@@ -22,43 +22,6 @@ export type InviteEmployeeValues = z.infer<typeof inviteEmployeeSchema>
 
 export const inviteEmployeeDefaults: InviteEmployeeValues = { firstname: '', lastname: '', phone: '', role: STAFF_ROLES[0].label }
 
-// ─── KYC ────────────────────────────────────────────────────────────────────
-
-export const ELEVEN_DIGITS = /^\d{11}$/
-
-/**
- * One schema for every individual tier; each tier's requirements are checked
- * at submit time (useKycFlow) so a half-filled form carries across tiers.
- */
-export const individualKycSchema = z.object({
-  first_name: z.string(),
-  last_name: z.string(),
-  dob: z.string(),
-  nin: z.string(),
-  bvn: z.string(),
-  address: z.string(),
-  city: z.string(),
-  state: z.string(),
-})
-export type IndividualKycValues = z.infer<typeof individualKycSchema>
-export const individualKycDefaults: IndividualKycValues = { first_name: '', last_name: '', dob: '', nin: '', bvn: '', address: '', city: '', state: '' }
-
-export const corporateKycSchema = z.object({
-  firstname: z.string(),
-  lastname: z.string(),
-  dob: z.string(),
-  bvn: z.string(),
-  business_name: z.string(),
-  business_type: z.string(),
-  registration_number: z.string(),
-  reg_date: z.string(),
-  address: z.string(),
-  state: z.string(),
-  tin: z.string(),
-})
-export type CorporateKycValues = z.infer<typeof corporateKycSchema>
-export const corporateKycDefaults: CorporateKycValues = { firstname: '', lastname: '', dob: '', bvn: '', business_name: '', business_type: '', registration_number: '', reg_date: '', address: '', state: '', tin: '' }
-
 // ─── Settlement bank ────────────────────────────────────────────────────────
 
 const optionalAmount = z.string().trim().refine(value => value === '' || (Number.isFinite(Number(value)) && Number(value) >= 0), 'Enter a positive amount')

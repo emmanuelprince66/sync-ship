@@ -14,6 +14,8 @@ export type AuthUser = {
   email: string
   phone?: string
   role?: UserRole
+  /** Staff permissions from the login response (sink: `permissions`); owners have all of them. */
+  permissions?: Partial<Record<string, boolean>>
 }
 
 type AuthState = {

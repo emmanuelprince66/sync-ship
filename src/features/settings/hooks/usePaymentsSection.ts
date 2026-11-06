@@ -6,23 +6,25 @@ import { isLive } from '@/api/http'
 import { useKycStatus } from '@/api/kyc'
 import { useSaveSettings } from '@/api/settings'
 import type { PaymentSettings } from '@/api/types'
-import { useDisclosure } from '@/hooks/useDisclosure'
-import { CORPORATE_TIERS, INDIVIDUAL_TIERS } from '../constants'
+import { useNavigate } from 'react-router'
+import { CORPORATE_TIERS, INDIVIDUAL_TIERS } from '@/features/kyc/tiers'
+import { paths } from '@/routes/paths'
 
 type Draft = { online: boolean; chargesPaidBy: OnlinePayments['chargesPaidBy']; wallet: boolean }
 
 /**
  * Payments & KYC tab. Online payments (live: allow_online_payment +
  * pay_transaction_charges, gated on KYC like sink-inventory) and the wallet
- * toggle (sample data) share the tab's Save button; KYC and bank accounts act
- * through their own dialogs.
+ * toggle (sample data) share the tab's Save button. KYC lives on its own page
+ * (/kyc, as in sink-inventory); bank accounts act through their own dialog.
  */
 export const usePaymentsSection = (initial: PaymentSettings) => {
   const kyc = useKycStatus()
   const online = useOnlinePayments()
   const saveOnline = useSaveOnlinePayments()
   const saveSettings = useSaveSettings()
-  const kycModal = useDisclosure()
+  const navigate = useNavigate()
+  const openKyc = () => navigate(paths.kyc)
   const [draft, setDraft] = useState<Draft | null>(null)
 
   const server: Draft | null = online.data ? { online: online.data.enabled, chargesPaidBy: online.data.chargesPaidBy, wallet: initial.wallet } : null
@@ -39,7 +41,7 @@ export const usePaymentsSection = (initial: PaymentSettings) => {
   const setOnline = (enabled: boolean) => {
     if (enabled && !verified) {
       toast.info('Complete KYC Tier 1 to accept online payments')
-      kycModal.open()
+      openKyc()
       return
     }
     update({ online: enabled })
@@ -74,7 +76,7 @@ export const usePaymentsSection = (initial: PaymentSettings) => {
       tierLabel: status?.tier ? `Tier ${status.tier}` : null,
       limit: tierInfo ? `${tierInfo.limit} daily limit` : 'Withdrawals locked until Tier 1',
       badge: fullyVerified ? 'Verified' : status?.tier ? `Tier ${status.tier} of ${tiers.length}` : status?.hasStarted ? 'In progress' : 'Not started',
-      modal: kycModal,
+      open: openKyc,
     },
   }
 }

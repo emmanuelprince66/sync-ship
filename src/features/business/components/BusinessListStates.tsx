@@ -4,7 +4,7 @@ import { Skeleton, SkeletonGroup } from '@/components/ui/Skeleton'
 
 /** Matches the business card layout while the list loads. */
 export function BusinessListSkeleton() {
-  return <SkeletonGroup label="Loading your businesses" className="grid gap-3 sm:grid-cols-2">
+  return <SkeletonGroup label="Loading your businesses" className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
     {Array.from({ length: 4 }, (_, index) => <div key={index} className="flex items-center gap-4 rounded-2xl border border-[#E0E8E3] bg-white p-4 sm:p-5">
       <Skeleton className="h-12 w-12 shrink-0 rounded-xl"/>
       <div className="flex-1 space-y-2"><Skeleton className="h-3.5 w-32"/><Skeleton className="h-2.5 w-44 max-w-full"/><Skeleton className="h-4 w-20 rounded-full"/></div>

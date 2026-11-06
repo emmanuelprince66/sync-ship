@@ -30,7 +30,8 @@ const mapTransaction = (value: unknown, index: number): WalletTransaction => {
   const trx = asRecord(value)
   const credit = str(trx.type).toUpperCase() === 'CREDIT'
   const label = str(trx.description) || str(trx.narration) || str(trx.account_name) || (credit ? 'Wallet credit' : 'Wallet debit')
-  return { id: str(trx.id) || `trx-${index}`, label, date: formatShortDate(str(trx.created_at)), amount: num(trx.amount), kind: credit ? 'credit' : 'debit', icon: credit ? 'wallet' : 'bank' }
+  const isBnpl = trx.is_bnpl === true
+  return { id: str(trx.id) || `trx-${index}`, label, date: formatShortDate(str(trx.created_at)), amount: num(trx.amount), kind: credit ? 'credit' : 'debit', icon: credit ? 'wallet' : 'bank', isBnpl, bnplReference: isBnpl ? str(asRecord(trx.bnpl_details).order_reference) || undefined : undefined }
 }
 
 const toWithdrawalAccount = (account: SettlementAccount | undefined): BankAccount | null =>

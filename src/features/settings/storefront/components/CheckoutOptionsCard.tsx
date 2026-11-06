@@ -1,7 +1,7 @@
 import type { StorefrontProfile } from '@/api/storefront-settings'
 import { Toggle } from '@/components/ui/Toggle'
+import { BnplCard } from '@/features/bnpl'
 import { useCheckoutOptions } from '../hooks/useCheckoutOptions'
-import { BnplTermsModal } from './BnplTermsModal'
 import { SettingsCard } from './SettingsCard'
 
 function OptionRow({ title, description, enabled, onChange, busy, badge }: { title: string; description: string; enabled: boolean; onChange: (value: boolean) => void; busy: boolean; badge?: string }) {
@@ -19,9 +19,8 @@ export function CheckoutOptionsCard({ profile }: { profile: StorefrontProfile })
 
   return <SettingsCard icon="card" title="Checkout options" description="How customers can pay and order from your store.">
     <div className="space-y-3">
-      <OptionRow title="Buy now, pay later" badge={options.bnplEnabled ? 'Active' : undefined} description="Let eligible customers spread payments with Akawopay. You’re paid in full; Akawopay collects the instalments. Needs an activated wallet with upgraded KYC." enabled={options.bnplEnabled} onChange={options.toggleBnpl} busy={options.bnplSaving}/>
+      <BnplCard active={profile.enableBnpl}/>
       <OptionRow title="Sell without stock" description="Allow orders even when an item’s recorded stock is 0. Useful for made-to-order or pre-order items." enabled={options.sellWithoutStock} onChange={options.setSellWithoutStock} busy={options.stockSaving}/>
     </div>
-    <BnplTermsModal open={options.terms.open} onClose={options.terms.close} agreed={options.terms.agreed} onAgreedChange={options.terms.setAgreed} onActivate={options.terms.activate} activating={options.bnplSaving}/>
   </SettingsCard>
 }

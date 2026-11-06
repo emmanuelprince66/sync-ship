@@ -5,7 +5,9 @@
  *  POST  order/track_shipment/{order_id}/                                  (refresh Shipbubble tracking)
  *  PATCH order/change_shipping/{order_id}/?status=PENDING|SHIPPED|DELIVERED
  *  POST  order/fetch_shipment_rate/{business_id}/                          { products, address, note } → { reference, request_token, couriers }
- *  POST  order/business/create_order_shipbubble/{reference}/               { customer, payment_status, request_token, service_code, courier_id, channel }
+ *  POST  order/business/create_order_shipbubble/{reference}/               { customer, payment_status, payment_method?, bank?, amount_paid?, request_token, service_code, courier_id, channel }
+ *  POST  order/business/create_order_inhouse/{business_id}/                { products, address, shipping_date?, note?, customer, payment_status, payment_method?, bank?, amount_paid?, shipping_id }
+ *  PATCH order/mark-paid/{order_id}/                                       { status, amount?, method?: BANK|CASH, bank? }
  *  POST  customer/{business_id}/                                           { name, phone, email }
  *  GET   order/shipping_dimention/  ·  GET order/shipping_category/
  */
@@ -16,6 +18,18 @@ import { asRecord, at, formatActivityDate, listFrom, num, str } from './http'
 import type { BoxSize, CreateShipmentInput, DeliveryPartner, DashboardStats, RateQuote, RateRequestInput, Shipment, ShipmentDetails, ShipmentStatus, ShippingCategory } from './types'
 
 export type OrderPaymentStatus = 'UNPAID' | 'PARTIAL' | 'PAID'
+export type OrderPaymentMethod = 'BANK' | 'CASH'
+
+/** What the customer has already paid for the order (sink-inventory's order form). */
+export type OrderPayment = { status: OrderPaymentStatus; method?: OrderPaymentMethod; bankId?: string; amountPaid?: number }
+
+/** Payment keys exactly as sink sends them: method/bank/amount only when something was paid. */
+const paymentPayload = ({ status, method, bankId, amountPaid }: OrderPayment) => ({
+  payment_status: status,
+  ...(status !== 'UNPAID' ? { payment_method: method === 'BANK' ? 'BANK-TRANSFER' : 'CASH' } : {}),
+  ...(status !== 'UNPAID' && method === 'BANK' && bankId ? { bank: bankId } : {}),
+  ...(status !== 'UNPAID' && amountPaid ? { amount_paid: amountPaid.toFixed(2) } : {}),
+})
 export type BackendShippingStatus = 'PENDING' | 'SHIPPED' | 'DELIVERED'
 
 /** Backend shipping_status → the design's four statuses. Unknown values keep `rawStatus` for the UI. */
@@ -55,20 +69,26 @@ export const mapOrder = (value: unknown): Shipment => {
     amountValue: total,
     shippingFee: num(order.shipping_fee ?? at(order, 'delivery.shipping_fee')),
     date: formatActivityDate(str(order.created_at)),
+    paymentType: str(order.payment_type) || str(order.payment_method) || undefined,
+    bnplStatus: str(order.bnpl_status) || undefined,
   }
 }
 
-export type OrdersQuery = { search?: string; status?: ShipmentStatus; page?: number; limit?: number }
+/** paymentMethod 'BNPL' mirrors sink's Orders payment-method filter. */
+export type OrdersQuery = { search?: string; status?: ShipmentStatus; paymentMethod?: 'BNPL'; page?: number; limit?: number }
 export type OrdersPage = { shipments: Shipment[]; stats: DashboardStats; total: number; pages: number }
 
-export const fetchOrders = async (businessId: string, { search, status, page = 1, limit = 50 }: OrdersQuery = {}): Promise<OrdersPage> => {
+export const fetchOrders = async (businessId: string, { search, status, paymentMethod, page = 1, limit = 50 }: OrdersQuery = {}): Promise<OrdersPage> => {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) })
   if (search) params.set('search', search)
   if (status) params.set('shipping_status', toBackendStatus(status))
+  if (paymentMethod) params.set('payment_method', paymentMethod)
   const response = await apiRequest<unknown>(`order/orders/${businessId}/all?${params}`)
   const root = asRecord(response)
   const results = asRecord(root.results)
-  const shipments = listFrom(response, ['results.data', 'data', 'results']).map(mapOrder)
+  const all = listFrom(response, ['results.data', 'data', 'results']).map(mapOrder)
+  // Also filtered here: sink's proxy never forwarded payment_method, so the backend may ignore it.
+  const shipments = paymentMethod === 'BNPL' ? all.filter(shipment => shipment.paymentType?.toUpperCase() === 'BNPL' || Boolean(shipment.bnplStatus)) : all
   const now = new Date()
   const totalOrders = num(results.total_orders) || shipments.length
   const completed = num(results.completed_orders)
@@ -156,22 +176,28 @@ const tagRates = (rates: DeliveryPartner[]) => {
   return rates.map(rate => ({ ...rate, tag: rate.id === cheapest.id ? 'Best value' : rate.id === rates[0].id ? 'Fastest' : '' }))
 }
 
-export const fetchShipmentRates = async ({ products, customer, note }: RateRequestInput): Promise<RateQuote> => {
+/** Delivery address body shared by fetch_shipment_rate and create_order_inhouse (sink's buildAddressPayload). */
+const addressPayload = (customer: RateRequestInput['customer']) => {
   const { first, last } = splitName(customer.name)
+  return {
+    first_name: sanitize(first),
+    last_name: sanitize(last),
+    phone: customer.phone,
+    alt_phone: null,
+    email: customer.email,
+    country: 'Nigeria',
+    state: customer.state,
+    city: customer.city ? sanitize(customer.city) : null,
+    shipping_address: sanitize(customer.address),
+  }
+}
+
+export const fetchShipmentRates = async ({ products, customer, note }: RateRequestInput): Promise<RateQuote> => {
   const response = await apiRequest<unknown>(`order/fetch_shipment_rate/${requireBusinessId()}/`, {
     method: 'POST',
     body: {
       products: products.map(product => ({ product_id: product.productId, quantity: product.quantity })),
-      address: {
-        first_name: sanitize(first),
-        last_name: sanitize(last),
-        phone: customer.phone,
-        email: customer.email,
-        country: 'Nigeria',
-        state: customer.state,
-        city: customer.city ? sanitize(customer.city) : null,
-        shipping_address: sanitize(customer.address),
-      },
+      address: addressPayload(customer),
       ...(note ? { note } : {}),
     },
   })
@@ -191,7 +217,7 @@ const createCustomer = async (businessId: string, customer: CreateShipmentInput[
 }
 
 /** Books the selected courier on a quote. Returns the created order mapped to a Shipment. */
-export const bookShipment = async (input: CreateShipmentInput & { quote: RateQuote }, paymentStatus: OrderPaymentStatus = 'UNPAID'): Promise<Shipment> => {
+export const bookShipment = async (input: CreateShipmentInput & { quote: RateQuote }, payment: OrderPayment = { status: 'UNPAID' }): Promise<Shipment> => {
   const businessId = requireBusinessId()
   const courier = input.quote.rates.find(rate => rate.id === input.partnerId)
   if (!courier?.serviceCode) throw new Error('Please select a delivery option')
@@ -200,7 +226,7 @@ export const bookShipment = async (input: CreateShipmentInput & { quote: RateQuo
     method: 'POST',
     body: {
       customer: customerId,
-      payment_status: paymentStatus,
+      ...paymentPayload(payment),
       request_token: input.quote.requestToken,
       service_code: courier.serviceCode,
       courier_id: courier.courierId ?? '',
@@ -219,6 +245,53 @@ export const bookShipment = async (input: CreateShipmentInput & { quote: RateQuo
   }
   return { ...base, customer: input.customer.name, carrier: courier.full, amount: formatNaira(courier.price), shippingFee: courier.price }
 }
+
+/** The business's own delivery rate, used when Shipbubble isn't active (sink's in-house flow). */
+export type InhouseDelivery = { shippingMethodId: string; name: string; fee: number; shippingDate?: string; note?: string }
+
+/** POST order/business/create_order_inhouse/{business_id}/ — order delivered with one of the business's own rates. */
+export const createInhouseOrder = async (input: CreateShipmentInput & { delivery: InhouseDelivery; payment: OrderPayment }): Promise<Shipment> => {
+  const businessId = requireBusinessId()
+  const products = input.products.filter(product => product.productId).map(product => ({ product_id: product.productId as string, quantity: Number(product.quantity) || 1 }))
+  if (!products.length) throw new Error('Pick the items from your item list to create this order')
+  const customer = { ...input.customer, email: input.customer.email ?? '', state: input.customer.state ?? '' }
+  const customerId = input.customerId ?? await createCustomer(businessId, input.customer)
+  const response = asRecord(await apiRequest<unknown>(`order/business/create_order_inhouse/${businessId}/`, {
+    method: 'POST',
+    body: {
+      products,
+      address: addressPayload(customer),
+      ...(input.delivery.shippingDate ? { shipping_date: input.delivery.shippingDate } : {}),
+      ...(input.delivery.note ? { note: input.delivery.note } : {}),
+      customer: customerId,
+      ...paymentPayload(input.payment),
+      shipping_id: input.delivery.shippingMethodId,
+    },
+  }))
+  const order = response.id ? response : asRecord(response.data ?? at(response, 'data.data'))
+  const total = input.products.reduce((sum, item) => sum + (Number(item.amount) || 0) * (Number(item.quantity) || 1), 0) + input.delivery.fee
+  const base: Shipment = order.id ? mapOrder(order) : {
+    id: 'SH-NEW',
+    customer: input.customer.name,
+    destination: [input.customer.city, input.customer.state].filter(Boolean).join(', ') || input.customer.address,
+    carrier: input.delivery.name,
+    status: input.payment.status === 'UNPAID' ? 'Pending payment' : 'Awaiting pickup',
+    amount: formatNaira(total),
+    date: 'Just now',
+  }
+  return { ...base, customer: input.customer.name, carrier: input.delivery.name, shippingFee: input.delivery.fee }
+}
+
+/** PATCH order/mark-paid/{order_id}/ — sink's "Update payment" on an order: { status, amount, method, bank }. */
+export const markOrderPaid = ({ orderId, status, amount, method, bankId }: { orderId: string; status: OrderPaymentStatus; amount?: number; method?: OrderPaymentMethod; bankId?: string }) =>
+  apiRequest<unknown>(`order/mark-paid/${orderId}/`, {
+    method: 'PATCH',
+    body: {
+      status,
+      ...(status !== 'UNPAID' ? { amount, method } : {}),
+      ...(status !== 'UNPAID' && method === 'BANK' && bankId ? { bank: bankId } : {}),
+    },
+  })
 
 // ─── Reference data ─────────────────────────────────────────────────────────
 

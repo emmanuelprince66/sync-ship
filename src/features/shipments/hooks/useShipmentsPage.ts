@@ -1,14 +1,16 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { exportShipmentsCsv, useShipments, useShipmentStats } from '@/api/shipments'
 import { formatNaira } from '@/lib/format'
 import { useShipmentDrawer } from './useShipmentDrawer'
 import { useShipmentFilters } from './useShipmentFilters'
+import type { PaymentFilter } from '../utils'
 
 export function useShipmentsPage(tracking: boolean) {
-  const shipmentsQuery = useShipments()
+  const [payment, setPayment] = useState<PaymentFilter>('All payments')
+  const shipmentsQuery = useShipments(payment === 'BNPL' ? { paymentMethod: 'BNPL' } : {})
   const { data: stats, isLoading: statsLoading } = useShipmentStats()
   const shipments = shipmentsQuery.data ?? []
-  const filters = useShipmentFilters(shipments, tracking)
+  const filters = useShipmentFilters(shipments, tracking, payment)
   const drawer = useShipmentDrawer()
   const statusRef = useRef<HTMLSelectElement>(null)
 
@@ -25,6 +27,8 @@ export function useShipmentsPage(tracking: boolean) {
     statCards,
     statsLoading,
     filters,
+    payment,
+    setPayment: (value: string) => setPayment(value as PaymentFilter),
     drawer,
     statusRef,
     focusStatusFilter: useCallback(() => statusRef.current?.focus(), []),

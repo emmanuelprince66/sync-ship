@@ -22,6 +22,10 @@ export type Shipment = {
   shippingFee?: number
   customerPhone?: string
   customerEmail?: string
+  /** Live only: how the customer paid (e.g. BNPL, BANK-TRANSFER, CARD). */
+  paymentType?: string
+  /** Live only: Akawopay BNPL state (PENDING | APPROVED | REJECTED). */
+  bnplStatus?: string
 }
 
 /** One package line in the create-shipment wizard. All fields are form strings. */
@@ -118,7 +122,18 @@ export type ShipmentDetails = Shipment & {
 
 export type CreateShipmentResult = { shipment: Shipment; checkoutLink?: string }
 
-export type WalletTransaction = { id: string; label: string; date: string; amount: number; kind: 'credit' | 'debit'; icon: 'wallet' | 'bank' }
+export type WalletTransaction = {
+  id: string
+  label: string
+  date: string
+  amount: number
+  kind: 'credit' | 'debit'
+  icon: 'wallet' | 'bank'
+  /** An Akawopay (BNPL) settlement landing in the wallet. */
+  isBnpl?: boolean
+  /** The sale this BNPL credit settled (bnpl_details.order_reference). */
+  bnplReference?: string
+}
 
 export type BankAccount = { bank: string; maskedNumber: string; accountName: string; verified: boolean; accountNumber: string }
 

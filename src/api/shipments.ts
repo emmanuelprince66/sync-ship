@@ -4,7 +4,7 @@ import { formatNaira } from '@/lib/format'
 import { useCurrentBusinessId } from './business'
 import { isLive } from './http'
 import { db } from './mock-data'
-import { bookShipment, fetchBoxSizes, fetchOrderDetails, fetchOrders, fetchShipmentRates, fetchShippingCategories, refreshTracking, updateShippingStatus, type OrderPaymentStatus, type OrdersPage, type OrdersQuery } from './orders'
+import { bookShipment, createInhouseOrder, fetchBoxSizes, fetchOrderDetails, fetchOrders, fetchShipmentRates, fetchShippingCategories, markOrderPaid, refreshTracking, updateShippingStatus, type InhouseDelivery, type OrderPayment, type OrdersPage, type OrdersQuery } from './orders'
 import { queryKeys } from './query-keys'
 import type { CreateShipmentInput, CreateShipmentResult, Shipment, ShipmentDetails } from './types'
 
@@ -19,10 +19,11 @@ export const packageTotal = (products: CreateShipmentInput['products']) =>
 
 // ─── Sample-data services ───────────────────────────────────────────────────
 
-const getMockOrders = ({ search, status }: OrdersQuery = {}): Promise<OrdersPage> => {
+const getMockOrders = ({ search, status, paymentMethod }: OrdersQuery = {}): Promise<OrdersPage> => {
   const term = search?.trim().toLowerCase()
   const shipments = db.shipments.filter(shipment =>
     (!status || shipment.status === status) &&
+    (paymentMethod !== 'BNPL' || shipment.paymentType?.toUpperCase() === 'BNPL' || Boolean(shipment.bnplStatus)) &&
     (!term || [shipment.id, shipment.customer, shipment.destination].some(value => value.toLowerCase().includes(term))))
   return mockDelay({ shipments, stats: { ...db.stats }, total: shipments.length, pages: 1 })
 }
@@ -132,16 +133,25 @@ export const useShipmentRates = () =>
 export const canQuoteLive = (products: CreateShipmentInput['products']) =>
   isLive() && products.length > 0 && products.every(product => Boolean(product.productId))
 
+export type CreateOrderInput = CreateShipmentInput & {
+  /** What the customer has already paid (UNPAID / PARTIAL / PAID + method, bank, amount). */
+  payment: OrderPayment
+  /** Set when Shipbubble isn't active: the business's own delivery rate (create_order_inhouse). */
+  inhouse?: InhouseDelivery
+}
+
 /**
- * Books the shipment. Live + merchant checkout + a quote → create_order_shipbubble
- * (creates the customer first when no customerId). Anything else (customer
- * checkout links, ad-hoc items without a quote, mock mode) uses sample data.
+ * Creates the order exactly like sink-inventory's order form:
+ *  · Shipbubble active → create_order_shipbubble on the quote (channel OUTSTORE)
+ *  · otherwise         → create_order_inhouse with the chosen delivery rate (shipping_id)
+ * The customer record is created first when there's no customerId. Mock mode uses sample data.
+ * Customer checkout links don't come through here: the customer's storefront checkout creates that order.
  */
-const createShipment = async ({ orderPaymentStatus, ...input }: CreateShipmentInput & { orderPaymentStatus?: OrderPaymentStatus }): Promise<CreateShipmentResult> => {
+const createShipment = async ({ payment, inhouse, ...input }: CreateOrderInput): Promise<CreateShipmentResult> => {
   if (!isLive()) return createMockShipment(input)
-  if (input.method !== 'merchant') throw new Error('Customer checkout links are coming soon. Book the delivery yourself for now.')
+  if (inhouse) return { shipment: await createInhouseOrder({ ...input, delivery: inhouse, payment }) }
   if (!input.quote || input.quote.reference === 'mock-reference') throw new Error('Get live delivery rates (step 3) before booking.')
-  return { shipment: await bookShipment({ ...input, quote: input.quote }, orderPaymentStatus) }
+  return { shipment: await bookShipment({ ...input, quote: input.quote }, payment) }
 }
 
 export const useCreateShipment = () => {
@@ -153,6 +163,12 @@ export const useCreateShipment = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.wallet })
     },
   })
+}
+
+/** PATCH order/mark-paid/{order_id}/ — record a payment on an existing order (sink's Update payment). */
+export const useMarkOrderPaid = () => {
+  const invalidate = useInvalidateShipments()
+  return useMutation({ mutationFn: (input: Parameters<typeof markOrderPaid>[0]) => (isLive() ? markOrderPaid(input) : mockDelay(null)), onSuccess: invalidate })
 }
 
 // ─── Reference data (read-only) ─────────────────────────────────────────────

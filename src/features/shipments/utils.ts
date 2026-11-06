@@ -5,6 +5,12 @@ export type StatusFilter = typeof STATUS_FILTER_OPTIONS[number]
 
 export const ACTIVE_STATUSES: ShipmentStatus[] = ['In transit', 'Awaiting pickup']
 
+/** sink-inventory's Orders payment-method filter (BNPL = Akawopay). */
+export const PAYMENT_FILTER_OPTIONS = ['All payments', 'BNPL'] as const
+export type PaymentFilter = typeof PAYMENT_FILTER_OPTIONS[number]
+
+export const isBnplShipment = (shipment: Shipment) => shipment.paymentType?.toUpperCase() === 'BNPL' || Boolean(shipment.bnplStatus)
+
 /** 1 = confirmed, 2 = rider assigned, 3 = in transit, 4 = delivered. */
 export const progressFor = (status: ShipmentStatus) =>
   status === 'Delivered' ? 4 : status === 'In transit' ? 3 : status === 'Awaiting pickup' ? 2 : 1
