@@ -1,0 +1,15 @@
+export const queryKeys = {
+  businesses: ['businesses'] as const,
+  business: ['business'] as const,
+  shipments: ['shipments'] as const,
+  shipment: ['shipment'] as const,
+  stats: ['stats'] as const,
+  partners: ['partners'] as const,
+  boxSizes: ['shipping', 'box-sizes'] as const,
+  shippingCategories: ['shipping', 'categories'] as const,
+  items: ['items'] as const,
+  itemSales: ['items', 'sales'] as const,
+  wallet: ['wallet'] as const,
+  settings: ['settings'] as const,
+  employees: ['employees'] as const,
+}
