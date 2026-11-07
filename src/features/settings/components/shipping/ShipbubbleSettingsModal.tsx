@@ -172,6 +172,54 @@ function CategoryStep({ form }: { form: ShipbubbleSettingsForm }) {
   </SettingsTile>
 }
 
+// ─── Step 3: default package size (sink: BoxSizePickerModal) ─────────────
+
+function BoxPreview({ imageUrl, name, size = 'h-12 w-12' }: { imageUrl: string; name: string; size?: string }) {
+  return imageUrl
+    ? <img src={imageUrl} alt={name} className={cn('shrink-0 rounded-xl border border-[#E4EBE7] bg-white object-contain p-1', size)}/>
+    : <span className={cn('flex shrink-0 items-center justify-center rounded-xl bg-[#EAF5E9] text-[#438352]', size)}><Icon name="box" size={20}/></span>
+}
+
+function PackageSizeStep({ form }: { form: ShipbubbleSettingsForm }) {
+  const box = form.settings.packageSize
+  return <SettingsTile step={3} icon="box" title="Default Package Size" description="The box and maximum weight Shipbubble quotes with when a shipment has no size of its own.">
+    <button type="button" onClick={form.openBoxPicker} className="mt-4 flex w-full items-center gap-3 rounded-2xl border border-[#DCE7E0] bg-white p-3.5 text-left transition hover:border-[#529661]">
+      <BoxPreview imageUrl={box?.imageUrl ?? ''} name={box?.name ?? 'Package'}/>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-extrabold text-[#17382C]">{box?.name || 'Pick a box size'}</span>
+        {box
+          ? <span className="mt-0.5 block text-[11px] text-[#7D8D85]">Max weight: {box.maxWeight} kg · H:{box.height}cm · L:{box.length}cm · W:{box.width}cm</span>
+          : <span className="mt-0.5 block text-[11px] text-[#7D8D85]">Choose the size most of your orders ship in</span>}
+      </span>
+      <span className="shrink-0 text-xs font-extrabold text-[#438352]">{box ? 'Change' : 'Choose'}</span>
+    </button>
+  </SettingsTile>
+}
+
+function BoxSizePicker({ form }: { form: ShipbubbleSettingsForm }) {
+  const current = form.settings.packageSize?.name
+  return <Modal open={form.boxPickerOpen} onClose={form.closeBoxPicker} title="Choose a default package size" panelClassName="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-[0_25px_80px_rgba(9,38,28,.2)]">
+    <div className="flex items-start justify-between gap-3">
+      <div><div className="text-lg font-black text-[#17382C]">Default package size</div><div className="mt-1 text-xs text-[#819088]">Pick the box that fits most of what you sell.</div></div>
+      <button type="button" aria-label="Close" onClick={form.closeBoxPicker} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#E0E8E3]"><Icon name="close" size={17}/></button>
+    </div>
+    {form.boxSizesLoading
+      ? <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">{Array.from({ length: 6 }, (_, index) => <Skeleton key={index} className="h-40 rounded-2xl"/>)}</div>
+      : form.boxSizes.length === 0
+        ? <p className="mt-6 rounded-2xl bg-[#F4F8F5] p-5 text-center text-xs text-[#7D8D85]">No box sizes are available right now. Try again shortly.</p>
+        : <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">{form.boxSizes.map(box => {
+          const selected = current === box.name
+          return <button key={box.name} type="button" onClick={() => form.pickBoxSize(box)} aria-pressed={selected} className={cn('relative flex flex-col items-center rounded-2xl border-2 p-4 text-center transition', selected ? 'border-[#529661] bg-[#F5FAF4]' : 'border-[#E4EBE7] hover:border-[#BFD9C3]')}>
+            {selected && <span className="absolute right-2.5 top-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-[#529661] text-white"><Icon name="check" size={11} stroke={3}/></span>}
+            <BoxPreview imageUrl={box.imageUrl} name={box.name} size="h-16 w-16"/>
+            <span className="mt-3 text-xs font-extrabold text-[#17382C]">{box.name}</span>
+            <span className="mt-1 text-[10px] font-bold text-[#438352]">Max weight: {box.maxWeight} kg</span>
+            <span className="mt-0.5 text-[10px] text-[#87968F]">H:{box.height}cm · L:{box.length}cm · W:{box.width}cm</span>
+          </button>
+        })}</div>}
+  </Modal>
+}
+
 // ─── Modal ────────────────────────────────────────────────────────────────
 
 function SettingsBody({ saved, onClose }: { saved: ShipbubbleState | undefined; onClose: () => void }) {
@@ -187,7 +235,9 @@ function SettingsBody({ saved, onClose }: { saved: ShipbubbleState | undefined; 
     <div className="flex-1 space-y-4 overflow-y-auto bg-[#F7F9F7] px-4 py-5 sm:px-7">
       <PickupStep form={form}/>
       <CategoryStep form={form}/>
+      <PackageSizeStep form={form}/>
     </div>
+    <BoxSizePicker form={form}/>
     <div className="flex flex-col-reverse gap-3 border-t border-[#EDF1EF] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
       <p className="text-center text-[11px] text-[#87968F] sm:text-left">Changes apply to new shipments only.</p>
       <div className="flex gap-2">

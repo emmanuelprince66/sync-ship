@@ -1,5 +1,5 @@
 import type { PendingBnplOrder } from '@/api/bnpl'
-import { Button } from '@/components/ui/Button'
+import { Pagination } from '@/components/ui/Pagination'
 import { DataTable } from '@/components/ui/DataTable'
 import { Icon } from '@/components/ui/Icon'
 import { Skeleton } from '@/components/ui/Skeleton'
@@ -66,11 +66,7 @@ export function PendingBnplPanel({ dateRange, startDate, endDate }: PendingBnplP
           <DataTable columns={pendingBnplColumns} data={panel.orders} loading={panel.isLoading} minWidthClassName="min-w-[760px]" emptyState="Nothing waiting to be settled" getRowId={order => order.saleId || order.orderReference} renderMobileCard={order => <SettlementCard order={order}/>}/>
         </div>}
 
-      {panel.pages > 1 && <div className="flex items-center justify-between border-t border-[#EBF0ED] px-4 py-3">
-        <Button variant="outline" onClick={panel.prev} disabled={!panel.canPrev} className="px-3 py-2 text-xs">Previous</Button>
-        <span className="text-[11px] font-bold text-[#7B8C83]">Page {panel.page} of {panel.pages}</span>
-        <Button variant="outline" onClick={panel.next} disabled={!panel.canNext} className="px-3 py-2 text-xs">Next</Button>
-      </div>}
+      {panel.pages > 1 && <Pagination currentPage={panel.page} totalPages={panel.pages} onPageChange={panel.setPage}/>}
     </>}
   </section>
 }

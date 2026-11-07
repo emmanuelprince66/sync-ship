@@ -1,8 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Papa from 'papaparse'
 import { apiRequest, mockDelay } from '@/lib/api-client'
 import { requireBusinessId, useCurrentBusinessId } from './business'
-import { apiFormRequest, asRecord, isLive, listFrom, num, str } from './http'
+import { apiFormRequest, asRecord, at, isLive, listFrom, num, str } from './http'
 import { db, PLACEHOLDER_ITEM_IMAGE } from './mock-data'
 import { queryClient } from '@/lib/query-client'
 import { queryKeys } from './query-keys'
@@ -180,6 +180,35 @@ const importItems = (file: File) =>
 const useItemsKey = () => {
   const { businessId } = useCurrentBusinessId()
   return { key: [...queryKeys.items, isLive() ? businessId : 'mock'] as const, businessId }
+}
+
+export type ItemsPageQuery = { page: number; limit: number; search: string }
+export type ItemsPageResult = { items: CatalogItem[]; pages: number; total: number }
+
+/** One page of products — GET product/business/{id}/?page&limit&search, as sink-inventory pages its product list. */
+const getItemsPage = async (businessId: string, { page, limit, search }: ItemsPageQuery): Promise<ItemsPageResult> => {
+  if (!isLive()) {
+    const term = search.toLowerCase()
+    const all = db.items.filter(item => !term || item.name.toLowerCase().includes(term))
+    return mockDelay({ items: all.slice((page - 1) * limit, page * limit).map(item => ({ ...item })), pages: Math.max(Math.ceil(all.length / limit), 1), total: all.length })
+  }
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) })
+  if (search) params.set('search', search)
+  const response = await apiRequest<unknown>(`product/business/${businessId}/?${params.toString()}`)
+  const items = listFrom(response, ['results.data', 'data', 'results']).map(mapProduct)
+  const total = num(at(response, 'total')) || num(at(response, 'count')) || num(at(response, 'results.total')) || items.length
+  const pages = num(at(response, 'pages')) || num(at(response, 'results.pages')) || num(at(response, 'total_pages')) || Math.ceil(total / limit)
+  return { items, pages: Math.max(pages, 1), total }
+}
+
+export const useItemsPage = (query: ItemsPageQuery) => {
+  const { businessId } = useCurrentBusinessId()
+  return useQuery({
+    queryKey: [...queryKeys.items, 'page', isLive() ? businessId : 'mock', query],
+    queryFn: () => getItemsPage(businessId as string, query),
+    enabled: !isLive() || Boolean(businessId),
+    placeholderData: keepPreviousData,
+  })
 }
 
 export const useItems = () => {

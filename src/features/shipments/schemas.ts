@@ -1,13 +1,11 @@
 import { z } from 'zod'
 import { DEFAULT_STATE, NIGERIAN_STATES } from './constants'
 
-const packageItemSchema = z.object({
+export const packageItemSchema = z.object({
   name: z.string().trim().min(1, 'Enter the product name'),
   quantity: z.string(),
   amount: z.string(),
   weight: z.string().refine(value => Number(value) > 0, 'Enter the package weight'),
-  length: z.string(),
-  width: z.string(),
   /** Set when the line was picked from the item list; the backend orders saved products only. */
   productId: z.string().optional(),
 })
@@ -60,7 +58,7 @@ export type PackageItemValues = ShipmentFormValues['products'][number]
 export type PaymentStatusValue = ShipmentFormValues['payment']['status']
 export type PaymentMethodValue = ShipmentFormValues['payment']['method']
 
-export const emptyPackageItem = (): PackageItemValues => ({ name: '', quantity: '1', amount: '', weight: '', length: '', width: '' })
+export const emptyPackageItem = (): PackageItemValues => ({ name: '', quantity: '1', amount: '', weight: '' })
 
 const today = () => new Date().toISOString().slice(0, 10)
 

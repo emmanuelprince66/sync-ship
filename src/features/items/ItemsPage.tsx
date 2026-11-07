@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/Button'
+import { Pagination } from '@/components/ui/Pagination'
 import { PageHeader, SearchInput, SegmentedTabs } from '@/components/ui/common'
 import { MediaCardGridSkeleton } from '@/components/ui/Skeleton'
 import { AddItemModal } from './AddItemModal'
@@ -30,7 +31,7 @@ export default function ItemsPage() {
         {page.isLoading
           ? <MediaCardGridSkeleton count={6} className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"/>
           : page.tab === 'inventory'
-          ? <ItemList items={page.visibleItems} onToggleStock={page.toggleStock} onEditPrice={page.openEditPrice}/>
+          ? <><ItemList items={page.visibleItems} onToggleStock={page.toggleStock} onEditPrice={page.openEditPrice}/><Pagination className="-mx-5 mt-5 md:-mx-6" currentPage={page.pagination.page} totalPages={page.pagination.pages} onPageChange={page.pagination.setPage} pageSize={page.pagination.pageSize} onPageSizeChange={page.pagination.setPageSize} pageSizeOptions={[12, 24, 48, 96]}/></>
           : <SalesTable sales={page.visibleSales}/>}
       </div>
       <div className="space-y-5">

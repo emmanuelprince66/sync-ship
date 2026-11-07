@@ -81,7 +81,7 @@ export const useBusinessBanks = () => {
 // ─── Wallet page (balance + transactions) ───────────────────────────────────
 
 export type TransactionFilter = 'ALL' | 'CREDIT' | 'DEBIT' | 'ONLINE'
-export type TransactionQuery = { page: number; search: string; filter: TransactionFilter; startDate: string; endDate: string }
+export type TransactionQuery = { page: number; search: string; filter: TransactionFilter; startDate: string; endDate: string; limit?: number }
 
 export type WalletTrx = {
   id: string
@@ -131,7 +131,7 @@ const mapTrx = (value: unknown, index: number): WalletTrx => {
 }
 
 const getWalletPage = async (bankId: string, query: TransactionQuery): Promise<WalletAccountPage> => {
-  const params = new URLSearchParams({ page: String(query.page), limit: String(TRANSACTIONS_PAGE_SIZE) })
+  const params = new URLSearchParams({ page: String(query.page), limit: String(query.limit ?? TRANSACTIONS_PAGE_SIZE) })
   if (query.search) params.set('search', query.search)
   if (query.filter === 'CREDIT' || query.filter === 'DEBIT') params.set('type', query.filter)
   if (query.filter === 'ONLINE') params.set('mode', 'ONLINE')

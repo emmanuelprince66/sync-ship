@@ -1,3 +1,5 @@
+import { useBoxSizes } from '@/api/shipments'
+import type { BoxSize } from '@/api/types'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { EMPTY_SHIPBUBBLE, useSaveShipbubble, useShipbubbleCategories, type ShipbubbleState, type ShippingCompany } from '@/api/shipping-settings'
@@ -6,7 +8,7 @@ import { shipbubbleSetupSchema } from '../shippingSchemas'
 
 /**
  * Shipbubble Configure modal — a port of sink-inventory's ShipbubbleSettingsModal +
- * useShipbubbleHook (minus the default package size step).
+ * useShipbubbleHook.
  *
  * The hook is mounted only while the modal is open, so every open starts from the saved
  * business values (sink's "re-hydrate on every open").
@@ -276,6 +278,10 @@ export const useShipbubbleSettingsForm = ({ saved, onClose }: { saved: Shipbubbl
   const stateLocked = hasCoordinates && pinLock.state && Boolean(selectedStateIso)
   const cityLocked = stateLocked && pinLock.city && Boolean(settings.city.trim())
 
+  // ─── Default package size ────────
+  const boxSizes = useBoxSizes()
+  const [boxPickerOpen, setBoxPickerOpen] = useState(false)
+
   // ─── Save ────────────────────────────────────────────────────────────────
   /** Saving the Configure form is by definition enabling and activating Shipbubble. */
   const handleSave = () => {
@@ -309,6 +315,13 @@ export const useShipbubbleSettingsForm = ({ saved, onClose }: { saved: Shipbubbl
       const picked = categories.find(category => String(category.id) === id)
       if (picked) update('category', picked)
     },
+    // default package size (sink: Step 3 + BoxSizePickerModal)
+    boxSizes: boxSizes.data ?? [],
+    boxSizesLoading: boxSizes.isLoading,
+    boxPickerOpen,
+    openBoxPicker: () => setBoxPickerOpen(true),
+    closeBoxPicker: () => setBoxPickerOpen(false),
+    pickBoxSize: (box: BoxSize) => { update('packageSize', box); setBoxPickerOpen(false) },
   }
 }
 

@@ -17,11 +17,11 @@ function RatesMessage({ title, text, action, onAction, icon = 'route' }: { title
 /** Customer-link flow: delivery is chosen by the customer on the storefront, so explain what they'll see. */
 function CustomerDeliveryInfo({ wizard }: { wizard: CreateShipmentWizard }) {
   const { deliveryMode, rates, ratesLoading } = wizard
-  return <div className="space-y-4">
+  return <div className="flex flex-col gap-4">
     <div className="flex items-start gap-3 rounded-2xl bg-[#F0F6EF] p-5"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#438352]"><Icon name="route" size={19}/></div><div><div className="text-xs font-extrabold text-[#234A31]">{deliveryMode === 'shipbubble' ? 'Live courier rates at checkout' : 'Your delivery rates at checkout'}</div><div className="mt-1 text-[11px] leading-5 text-[#708276]">{deliveryMode === 'shipbubble' ? 'After your customer enters their address, your store shows live rates from verified delivery partners and they choose one.' : 'Your customer picks one of the delivery rates you’ve set up in Settings › Shipping setup.'}</div></div></div>
     {deliveryMode !== 'shipbubble' && (ratesLoading
-      ? <ListSkeleton rows={2} className="space-y-3" rowClassName="flex items-center gap-3 rounded-2xl border border-[#E4EBE7] p-4"/>
-      : rates.length > 0 && <div className="space-y-2">{rates.map(rate => <div key={rate.id} className="flex items-center justify-between gap-3 rounded-2xl border border-[#E4EBE7] p-4"><div className="min-w-0"><div className="truncate text-xs font-extrabold text-[#17382C]">{rate.full}</div><div className="mt-0.5 truncate text-[10px] text-[#819088]">{rate.eta}</div></div><div className="shrink-0 text-xs font-black text-[#123528]">{rate.tag || formatNaira(rate.price)}</div></div>)}</div>)}
+      ? <ListSkeleton rows={2} className="flex flex-col gap-3" rowClassName="flex items-center gap-3 rounded-2xl border border-[#E4EBE7] p-4"/>
+      : rates.length > 0 && <div className="flex flex-col gap-3">{rates.map(rate => <div key={rate.id} className="flex items-center justify-between gap-3 rounded-2xl border border-[#E4EBE7] p-4"><div className="min-w-0"><div className="truncate text-xs font-extrabold text-[#17382C]">{rate.full}</div><div className="mt-0.5 truncate text-[10px] text-[#819088]">{rate.eta}</div></div><div className="shrink-0 text-xs font-black text-[#123528]">{rate.tag || formatNaira(rate.price)}</div></div>)}</div>)}
   </div>
 }
 
@@ -39,14 +39,14 @@ export function DeliveryRateStep({ wizard }: { wizard: CreateShipmentWizard }) {
     {!isMerchant
       ? <CustomerDeliveryInfo wizard={wizard}/>
       : ratesLoading
-        ? <ListSkeleton rows={4} className="space-y-3" rowClassName="flex min-h-[80px] w-full items-center gap-3 rounded-2xl border-2 border-[#E4EBE7] p-4 sm:gap-4"/>
+        ? <ListSkeleton rows={4} className="flex flex-col gap-3" rowClassName="flex min-h-[80px] w-full items-center gap-3 rounded-2xl border-2 border-[#E4EBE7] p-4 sm:gap-4"/>
         : ratesError
           ? <RatesMessage title="We couldn’t load delivery options" text="Check the delivery address and your connection, then try again." action="Try again" onAction={refreshRates}/>
           : rates.length === 0
             ? deliveryMode === 'inhouse'
               ? <RatesMessage title="No delivery rates yet" text="Connect Shipbubble for live courier rates, or add your own delivery rates in Shipping setup." action="Open shipping setup" icon="settings" onAction={goToShippingSettings}/>
               : <RatesMessage title="No delivery options for this route" text="Check the address or the items, then refresh the rates." action="Edit address" icon="location" onAction={() => goToStep(2)}/>
-            : <div className="space-y-3" role="radiogroup" aria-label="Delivery option">{rates.map(item => <button type="button" role="radio" aria-checked={partnerId === item.id} key={item.id} onClick={() => selectPartner(item.id)} className={cn('flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left transition sm:gap-4', partnerId === item.id ? 'border-[#529661] bg-[#F5FAF4]' : 'border-[#E4EBE7] hover:border-[#C4D7C9]')}>
+            : <div className="flex flex-col gap-3" role="radiogroup" aria-label="Delivery option">{rates.map(item => <button type="button" role="radio" aria-checked={partnerId === item.id} key={item.id} onClick={() => selectPartner(item.id)} className={cn('flex w-full items-center gap-3 rounded-2xl border-2 p-4 text-left transition sm:gap-4', partnerId === item.id ? 'border-[#529661] bg-[#F5FAF4]' : 'border-[#E4EBE7] hover:border-[#C4D7C9]')}>
               {item.image
                 ? <img src={item.image} alt="" className="h-11 w-11 shrink-0 rounded-xl border border-[#E4EBE7] bg-white object-contain p-1"/>
                 : <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-sm font-black text-white" style={{ backgroundColor: item.color }}>{item.initials}</div>}

@@ -22,8 +22,9 @@ export default function KycPage() {
 
   return <div className="mx-auto w-full max-w-6xl">
     <header className="mb-6">
-      {page.canChangeType && <BackButton label="Change account type" onClick={page.backToChooser}/>}
-      {page.isUpgrading && <BackButton label="Back to my individual verification" onClick={page.backToChooser}/>}
+      {page.canChangeType ? <BackButton label="Change account type" onClick={page.backToChooser}/>
+        : page.isUpgrading ? <BackButton label="Back to my individual verification" onClick={page.backToChooser}/>
+        : <BackButton label="Back" onClick={page.exit}/>}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-xl font-black text-[#09261C] sm:text-2xl">{page.headline}</h1>

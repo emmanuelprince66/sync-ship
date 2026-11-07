@@ -19,5 +19,5 @@ export function useShipmentFilters(shipments: Shipment[], tracking: boolean, pay
       && (!query || [shipment.id, shipment.customer, shipment.destination].some(value => value.toLowerCase().includes(query))))
   }, [shipments, tracking, status, payment, debouncedSearch])
 
-  return { search, setSearch, status, setStatus: (value: string) => setStatus(value as StatusFilter), filtered }
+  return { search, setSearch, debouncedSearch, status, setStatus: (value: string) => setStatus(value as StatusFilter), filtered }
 }

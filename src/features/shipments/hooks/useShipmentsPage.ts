@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
-import { exportShipmentsCsv, useShipments, useShipmentStats } from '@/api/shipments'
+import { exportShipmentsCsv, useShipmentsPage as useShipmentsPageQuery, useShipmentStats } from '@/api/shipments'
+import type { ShipmentStatus } from '@/api/types'
 import { formatNaira } from '@/lib/format'
 import { useShipmentDrawer } from './useShipmentDrawer'
 import { useShipmentFilters } from './useShipmentFilters'
@@ -7,10 +8,24 @@ import type { PaymentFilter } from '../utils'
 
 export function useShipmentsPage(tracking: boolean) {
   const [payment, setPayment] = useState<PaymentFilter>('All payments')
-  const shipmentsQuery = useShipments(payment === 'BNPL' ? { paymentMethod: 'BNPL' } : {})
+  // Paging like sink-inventory: page + rows per page, with search/status sent to the server.
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusTerm, setStatusTerm] = useState('All statuses')
+  const shipmentsQuery = useShipmentsPageQuery({
+    page,
+    limit: pageSize,
+    search: searchTerm.trim() || undefined,
+    status: statusTerm === 'All statuses' ? undefined : (statusTerm as ShipmentStatus),
+    paymentMethod: payment === 'BNPL' ? 'BNPL' : undefined,
+  })
   const { data: stats, isLoading: statsLoading } = useShipmentStats()
-  const shipments = shipmentsQuery.data ?? []
+  const shipments = shipmentsQuery.data?.shipments ?? []
   const filters = useShipmentFilters(shipments, tracking, payment)
+  // Feed the debounced search/status back into the server query (and start again from page 1).
+  if (filters.debouncedSearch !== searchTerm) { setSearchTerm(filters.debouncedSearch); setPage(1) }
+  if (filters.status !== statusTerm) { setStatusTerm(filters.status); setPage(1) }
   const drawer = useShipmentDrawer()
   const statusRef = useRef<HTMLSelectElement>(null)
 
@@ -28,7 +43,8 @@ export function useShipmentsPage(tracking: boolean) {
     statsLoading,
     filters,
     payment,
-    setPayment: (value: string) => setPayment(value as PaymentFilter),
+    setPayment: (value: string) => { setPayment(value as PaymentFilter); setPage(1) },
+    pagination: { page, pages: shipmentsQuery.data?.pages ?? 1, pageSize, setPage, setPageSize: (size: number) => { setPageSize(size); setPage(1) } },
     drawer,
     statusRef,
     focusStatusFilter: useCallback(() => statusRef.current?.focus(), []),

@@ -2,6 +2,7 @@ import { createColumnHelper } from '@tanstack/react-table'
 import type { WalletTrx } from '@/api/transactions'
 import { SearchInput } from '@/components/ui/common'
 import { DataTable } from '@/components/ui/DataTable'
+import { Pagination } from '@/components/ui/Pagination'
 import { Icon } from '@/components/ui/Icon'
 import { cn } from '@/lib/cn'
 import { formatBalance, formatTrxDate } from '../format'
@@ -66,12 +67,6 @@ export function TransactionsSection({ page }: { page: WalletPageModel }) {
     <DataTable columns={buildColumns(page.openDetails)} data={page.transactions} loading={page.loading} minWidthClassName="min-w-[1080px]" getRowId={trx => trx.id}
       emptyState={<div className="py-4"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#EAF5E9] text-[#438352]"><Icon name="wallet" size={22}/></div><div className="mt-3 text-sm font-extrabold text-[#17382C]">No transactions yet</div><div className="mt-1 text-[11px] font-medium text-[#829189]">Money in and out of this account will show here.</div></div>}
       renderMobileCard={trx => <TransactionCard trx={trx} onView={page.openDetails}/>}/>
-    {pagination.pages > 1 && <div className="flex items-center justify-between gap-3 border-t border-[#EBF0ED] px-5 py-3">
-      <span className="text-[11px] font-semibold text-[#829189]">Page {pagination.page} of {pagination.pages}</span>
-      <div className="flex gap-2">
-        <button type="button" disabled={pagination.page <= 1} onClick={() => pagination.setPage(pagination.page - 1)} className="h-9 rounded-lg border border-[#DFE7E2] px-3 text-xs font-extrabold text-[#34483F] disabled:opacity-40">Previous</button>
-        <button type="button" disabled={pagination.page >= pagination.pages} onClick={() => pagination.setPage(pagination.page + 1)} className="h-9 rounded-lg border border-[#DFE7E2] px-3 text-xs font-extrabold text-[#34483F] disabled:opacity-40">Next</button>
-      </div>
-    </div>}
+    {(pagination.pages > 1 || page.transactions.length > 0) && <Pagination currentPage={pagination.page} totalPages={pagination.pages} onPageChange={pagination.setPage} pageSize={pagination.pageSize} onPageSizeChange={pagination.setPageSize}/>}
   </section>
 }

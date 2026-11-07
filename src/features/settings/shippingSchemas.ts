@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 /**
  * Shipbubble Configure validation — sink-inventory's validateAddress + validateSettings,
- * same order and messages. The default package size rule is intentionally gone (not needed by the backend).
+ * same order and messages.
  * Issues come back in key order, so the first one is the message to show.
  */
 const required = (label: string) => z.string().refine(value => value.trim().length > 0, `Please fill in ${label}.`)
@@ -13,6 +13,7 @@ export const shipbubbleSetupSchema = z.object({
   state: required('state'),
   phone: required('phone'),
   category: z.object({ id: z.number(), name: z.string() }).nullable().refine(value => value !== null, 'Pick a shipping category.'),
+  packageSize: z.object({ name: z.string() }).passthrough().nullable().refine(value => value !== null, 'Pick a default package size.'),
 })
 
 /** In-house shipping method — sink-inventory's shippingMethodSchema. */

@@ -35,8 +35,6 @@ export type PackageItem = {
   quantity: string
   amount: string
   weight: string
-  length: string
-  width: string
   /** Set when the line came from a live catalog product; required for live rates. */
   productId?: string
 }

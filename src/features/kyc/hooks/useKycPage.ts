@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router'
+import { settingsPath } from '@/routes/paths'
 import { useState } from 'react'
 import type { AccountType } from '@/api/kyc'
 import { CORPORATE_TIERS, INDIVIDUAL_TIERS, type KycTier } from '../tiers'
@@ -14,6 +16,7 @@ export const ACCOUNT_TYPES: { value: AccountType; title: string; blurb: string; 
  * opened supplies its own type, so the chooser is skipped.
  */
 export function useKycPage() {
+  const navigate = useNavigate()
   const kyc = useKyc()
   const { verification } = kyc
 
@@ -44,6 +47,8 @@ export function useKycPage() {
         : 'Complete a tier to raise your daily limit. Each tier builds on the one before it, and you can stop at any point.'
 
   return {
+    /** Leave the page: back where the user came from, or to Payments & KYC settings. */
+    exit: () => (window.history.length > 1 ? navigate(-1) : navigate(settingsPath('Payments & KYC'))),
     kyc,
     loading: verification.isLoading && !chosen,
     chosen,

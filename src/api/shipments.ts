@@ -6,7 +6,7 @@ import { isLive } from './http'
 import { db } from './mock-data'
 import { bookShipment, createInhouseOrder, fetchBoxSizes, fetchOrderDetails, fetchOrders, fetchShipmentRates, fetchShippingCategories, markOrderPaid, refreshTracking, updateShippingStatus, type InhouseDelivery, type OrderPayment, type OrdersPage, type OrdersQuery } from './orders'
 import { queryKeys } from './query-keys'
-import type { CreateShipmentInput, CreateShipmentResult, Shipment, ShipmentDetails } from './types'
+import type { BoxSize, CreateShipmentInput, CreateShipmentResult, Shipment, ShipmentDetails } from './types'
 
 /**
  * Shipments = Sync360 orders. Live mode reads/books through the backend
@@ -63,6 +63,9 @@ const useOrdersQuery = <T>(query: OrdersQuery, select: (page: OrdersPage) => T) 
 
 /** Shipments list. Optional server-side search/status filter (live) or local filter (mock). */
 export const useShipments = (query: OrdersQuery = {}) => useOrdersQuery(query, page => page.shipments)
+
+/** One page of shipments plus paging info (server-side page/limit/search/status). */
+export const useShipmentsPage = (query: OrdersQuery) => useOrdersQuery(query, page => ({ shipments: page.shipments, pages: Math.max(page.pages, 1), total: page.total }))
 
 /** Totals for the stat cards. Live values come from the orders endpoint's summary. */
 export const useShipmentStats = () => useOrdersQuery({}, page => page.stats)
@@ -175,9 +178,16 @@ export const useMarkOrderPaid = () => {
 
 const ONE_HOUR = 60 * 60 * 1000
 
-/** GET order/shipping_dimention/ — Shipbubble box presets. Empty in mock mode. */
+const MOCK_BOX_SIZES: BoxSize[] = [
+  { name: 'Envelope', imageUrl: '', height: 2, width: 25, length: 35, maxWeight: 0.5 },
+  { name: 'Small box', imageUrl: '', height: 10, width: 20, length: 25, maxWeight: 2 },
+  { name: 'Medium box', imageUrl: '', height: 20, width: 30, length: 40, maxWeight: 5 },
+  { name: 'Large box', imageUrl: '', height: 35, width: 45, length: 55, maxWeight: 15 },
+]
+
+/** GET order/shipping_dimention/ — Shipbubble box presets (sample sizes in mock mode). */
 export const useBoxSizes = () =>
-  useQuery({ queryKey: queryKeys.boxSizes, queryFn: () => (isLive() ? fetchBoxSizes() : mockDelay([])), staleTime: ONE_HOUR })
+  useQuery({ queryKey: queryKeys.boxSizes, queryFn: () => (isLive() ? fetchBoxSizes() : mockDelay(MOCK_BOX_SIZES)), staleTime: ONE_HOUR })
 
 /** GET order/shipping_category/ — Shipbubble item categories. Empty in mock mode. */
 export const useShippingCategories = () =>

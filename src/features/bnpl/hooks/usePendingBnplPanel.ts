@@ -75,6 +75,7 @@ export function usePendingBnplPanel({ dateRange, startDate: startDay, endDate: e
     retry: () => { void query.refetch() },
     page,
     pages,
+    setPage,
     canPrev: page > 1,
     canNext: page < pages,
     prev: () => setPage(current => Math.max(current - 1, 1)),

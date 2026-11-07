@@ -51,7 +51,9 @@ export function useCreateShipmentWizard() {
 
   const form = useForm<ShipmentFormValues>({ resolver: zodResolver(shipmentFormSchema), defaultValues: shipmentFormDefaults(), mode: 'onTouched' })
   const { control, register, setValue, getValues, trigger, handleSubmit, formState: { errors } } = form
-  const { fields, append, remove } = useFieldArray({ control, name: 'products' })
+  const { fields, append, remove, update } = useFieldArray({ control, name: 'products' })
+  /** Right-side panel for adding/editing one package item (null index = new item). */
+  const [itemPanel, setItemPanel] = useState<{ open: boolean; index: number | null }>({ open: false, index: null })
   const [products, method, customer, partnerId, payment] = useWatch({ control, name: ['products', 'method', 'customer', 'partnerId', 'payment'] })
 
   const itemsQuery = useItems()
@@ -207,8 +209,20 @@ export function useCreateShipmentWizard() {
     catalogLoading: itemsQuery.isLoading,
     /** Live mode: ad-hoc items can't be ordered — the backend needs saved products. */
     showCatalogNote: missingCatalogItems,
-    addProduct: () => append(emptyPackageItem()),
-    addFromCatalog: (item: CatalogItem) => append({ name: item.name, quantity: '1', amount: item.price, weight: item.weight, length: '', width: '', productId: item.productId }),
+    addProduct: () => setItemPanel({ open: true, index: null }),
+    editProduct: (index: number) => setItemPanel({ open: true, index }),
+    itemPanel: {
+      open: itemPanel.open,
+      isEdit: itemPanel.index !== null,
+      initial: itemPanel.index !== null ? products[itemPanel.index] ?? emptyPackageItem() : emptyPackageItem(),
+      close: () => setItemPanel(current => ({ ...current, open: false })),
+      save: (values: PackageItemValues) => {
+        if (itemPanel.index === null) append(values)
+        else update(itemPanel.index, { ...products[itemPanel.index], ...values })
+        setItemPanel({ open: false, index: null })
+      },
+    },
+    addFromCatalog: (item: CatalogItem) => append({ name: item.name, quantity: '1', amount: item.price, weight: item.weight, productId: item.productId }),
     removeProduct: remove,
     // Checkout method step
     method,

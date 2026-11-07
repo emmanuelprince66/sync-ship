@@ -6,7 +6,7 @@ import { requireBusinessId, updateBusiness, useCurrentBusiness, useCurrentBusine
 import { asRecord, isLive, listFrom, num, str } from './http'
 import { queryKeys } from './query-keys'
 import { useShippingCategories } from './shipments'
-import type { ShippingCategory } from './types'
+import type { ShippingCategory, BoxSize } from './types'
 
 /**
  * Shipping setup — port of sink-inventory's useShipbubbleHook + shipping methods:
@@ -20,8 +20,8 @@ import type { ShippingCategory } from './types'
  *  PATCH  business/single_shipping/{id}/
  *  DELETE business/single_shipping/{id}/
  *
- * Not sent: package_size / default box size — per instruction the backend doesn't
- * need it here, so there is no box-size step and no weight field.
+ * package_size (default box + max weight) comes from GET order/shipping_dimention/
+ * and is sent with the settings, as in sink-inventory.
  */
 
 export const shippingSettingsKeys = {
@@ -38,6 +38,8 @@ export type ShipbubbleSetup = {
   phone: string
   landmark: string
   category: ShippingCategory | null
+  /** Default package size (sink: packageSize) — box name, image, dimensions and max weight. */
+  packageSize: BoxSize | null
   /** Backend `shipbubble_settings.is_active`. */
   isActive: boolean
   /** Kept as strings end to end so a float round-trip never loses precision. Always set/cleared as a pair. */
@@ -56,7 +58,7 @@ export type ShippingMethod = { id: string; location: string; amount: number | nu
 /** `amount` is the fee as typed ("" → null), the way sink-inventory sends it. */
 export type ShippingMethodInput = { location: string; amount: string | null; description: string; visible: boolean }
 
-export const EMPTY_SHIPBUBBLE: ShipbubbleSetup = { street: '', city: '', state: '', phone: '', landmark: '', category: null, isActive: false, latitude: '', longitude: '' }
+export const EMPTY_SHIPBUBBLE: ShipbubbleSetup = { street: '', city: '', state: '', phone: '', landmark: '', category: null, packageSize: null, isActive: false, latitude: '', longitude: '' }
 
 /** Simple state list kept for other screens (KYC, business forms). */
 export const NIGERIAN_STATES = [
@@ -84,6 +86,9 @@ export const hydrateShipbubble = (raw: RawShipbubbleSettings | null, companies: 
       phone: str(sb.phone),
       landmark: str(sb.landmark),
       category: sb.category ? { id: num(sb.category.category_id), name: str(sb.category.category) } : null,
+      packageSize: sb.package_size
+        ? { name: str(sb.package_size.name), imageUrl: str(sb.package_size.description_image_url), height: num(sb.package_size.height), width: num(sb.package_size.width), length: num(sb.package_size.length), maxWeight: num(sb.package_size.max_weight) }
+        : null,
       isActive: Boolean(sb.is_active),
       // String() so a JSON number doesn't break the .trim() calls in the save path.
       latitude: sb.latitude != null ? String(sb.latitude) : '',
@@ -95,7 +100,7 @@ export const hydrateShipbubble = (raw: RawShipbubbleSettings | null, companies: 
 }
 
 /**
- * PATCH body — sink's buildPatchPayload without package_size. shipbubble_settings is
+ * PATCH body — sink's buildPatchPayload. shipbubble_settings is
  * only sent once a category is picked; lat/long only when both are present (the API
  * models them as optional, not nullable).
  */
@@ -110,6 +115,9 @@ const buildPatch = (settings: ShipbubbleSetup, companies: ShippingCompany[]) => 
         phone: settings.phone.trim(),
         landmark: settings.landmark.trim(),
         category: { category_id: settings.category.id, category: settings.category.name },
+        ...(settings.packageSize
+          ? { package_size: { name: settings.packageSize.name, description_image_url: settings.packageSize.imageUrl, height: settings.packageSize.height, width: settings.packageSize.width, length: settings.packageSize.length, max_weight: settings.packageSize.maxWeight } }
+          : {}),
         is_active: settings.isActive,
         ...(settings.latitude.trim() && settings.longitude.trim() ? { latitude: settings.latitude.trim(), longitude: settings.longitude.trim() } : {}),
       },

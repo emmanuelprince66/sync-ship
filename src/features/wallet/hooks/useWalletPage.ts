@@ -31,7 +31,8 @@ export function useWalletPage() {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [page, setPage] = useState(1)
-  const query: TransactionQuery = { page, search, filter, startDate, endDate }
+  const [pageSize, setPageSize] = useState(20)
+  const query: TransactionQuery = { page, search, filter, startDate, endDate, limit: pageSize }
   const account = useWalletAccount(query)
 
   // Modals — `?action=fund|transfer` opens one (dashboard buttons link here)
@@ -94,7 +95,7 @@ export function useWalletPage() {
       clearDates: () => { setStartDate(''); setEndDate(''); setPage(1) },
     },
     transactions: account.data?.transactions ?? [],
-    pagination: { page, pages: account.data?.pages ?? 1, setPage },
+    pagination: { page, pages: account.data?.pages ?? 1, setPage, pageSize, setPageSize: (size: number) => { setPageSize(size); setPage(1) } },
 
     needsKyc: banks.needsKyc,
     modal: modal ?? (banks.needsKyc && !kycDismissed ? 'kyc' : null),
