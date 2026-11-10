@@ -62,7 +62,7 @@ export function TransferModal(props: TransferModalProps) {
           <div className="rounded-xl border border-[#DCE7E0] bg-[#F7FAF8] px-4 py-3 text-xs font-bold text-[#34483F]">{flow.fromLabel}</div>
         </div>
         <Field label="Amount (₦)" type="number" inputMode="decimal" min="0.01" placeholder="0.00" value={flow.amount} onValueChange={flow.setAmount} className="[&_input]:text-lg"/>
-        <OptionSelect label="Category (optional)" placeholder={flow.categories.loading ? 'Loading categories…' : 'Select a category'} options={flow.categories.options} value={flow.categories.value} onChange={event => flow.categories.set(event.target.value)} required={false}/>
+        <OptionSelect label="Category (optional)" placeholder={flow.categories.loading ? 'Loading categories…' : 'Select a category'} options={flow.categories.options} value={flow.categories.value} onChange={event => flow.categories.set(event.target.value)}/>
         <Field label="Narration (optional)" placeholder="What is this payment for?" value={flow.narration} onValueChange={flow.setNarration}/>
 
         <div className="space-y-3 rounded-2xl bg-[#F2F7F3] p-4">

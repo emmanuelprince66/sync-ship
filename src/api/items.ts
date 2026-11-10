@@ -1,23 +1,27 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Papa from 'papaparse'
 import { apiRequest, mockDelay } from '@/lib/api-client'
-import { requireBusinessId, useCurrentBusinessId } from './business'
+import { fetchCurrentBusiness, requireBusinessId, useCurrentBusinessId } from './business'
 import { apiFormRequest, asRecord, at, isLive, listFrom, num, str } from './http'
-import { db, PLACEHOLDER_ITEM_IMAGE } from './mock-data'
+import { db } from './mock-data'
 import { queryClient } from '@/lib/query-client'
 import { queryKeys } from './query-keys'
 import type { CatalogItem, ItemSale } from './types'
 
 /**
- * Items = Sync360 products in live mode (they carry the product_id that
- * live shipment rates need):
- *  GET   product/business/{business_id}/?page&limit&search   → { results: { data: Product[] } }
- *  POST  product/business/{business_id}/                     multipart (name, selling_price, cost_price, weight, quantity, images)
- *  PATCH product/single_product/{product_id}/                multipart partial (selling_price, sell_online)
- *  GET   sale/dashboard/{business_id}/                       → { top_selling_products: [{ product__name, product__image, product__selling_price, quantity_sold }] }
+ * Items = the business's Virtual Products: lightweight catalog items with no stock
+ * tracking, which work in shipping rates, checkout and order manifests.
+ *  GET    product/virtual/{business_id}/?search&availability&listed_on_storefront&page&page_size
+ *  POST   product/virtual/{business_id}/         { name, price, description, weight, availability, listed_on_storefront }
+ *  PATCH  product/virtual/{business_id}/{id}/    partial
+ *  DELETE product/virtual/{business_id}/{id}/
+ *  PATCH  business/{business_id}/                { storefront_product_source: 'INVENTORY' | 'VIRTUAL' }
+ *  GET    sale/dashboard/{business_id}/          → { top_selling_products: [...] } (sales history)
+ * Weights are kilograms. A new picture goes as multipart with an `image` file, the way
+ * services and business logos do; every other save stays JSON.
  */
 
-export type NewItemInput = { name: string; weight: string; price: string; image: string }
+export type ItemInput = { name: string; description: string; price: string; weight: string; image: string; imageFile?: File | null; available: boolean; listed: boolean }
 
 // ─── Live mappers/services ──────────────────────────────────────────────────
 
@@ -28,26 +32,37 @@ const numericKey = (id: string) => {
   return Math.abs(hash)
 }
 
-const productImage = (product: Record<string, unknown>) => {
-  const media = listFrom(product.media, []).map(asRecord).find(item => str(item.type).toUpperCase() !== 'VIDEO' && str(item.file))
-  return str(media?.file) || str(product.image) || PLACEHOLDER_ITEM_IMAGE
-}
-
-const mapProduct = (value: unknown): CatalogItem => {
+const mapVirtualProduct = (value: unknown): CatalogItem => {
   const product = asRecord(value)
   const productId = str(product.id)
-  const quantity = num(product.quantity ?? product.stock)
   return {
     id: numericKey(productId),
     productId,
     name: str(product.name),
+    description: str(product.description),
     weight: str(product.weight) || '0',
-    price: String(num(product.selling_price ?? product.price)),
-    image: productImage(product),
-    quantity,
-    // Listed on the storefront (sell_online) and actually in stock.
-    inStock: product.sell_online !== false && (quantity > 0 || str(product.status).toUpperCase().replace('-', '_') === 'IN_STOCK'),
+    price: String(num(product.price)),
+    image: str(product.image) || str(product.image_url),
+    inStock: product.availability !== false,
+    listed: product.listed_on_storefront !== false,
   }
+}
+
+const toPayload = (input: ItemInput) => ({
+  name: input.name.trim(),
+  description: input.description.trim(),
+  price: input.price || '0',
+  weight: input.weight || '0',
+  availability: input.available,
+  listed_on_storefront: input.listed,
+})
+
+/** Fields as multipart, adding the picture file. */
+const toFormData = (fields: Record<string, unknown>, imageFile: File) => {
+  const form = new FormData()
+  for (const [key, value] of Object.entries(fields)) if (value !== undefined && value !== null) form.append(key, String(value))
+  form.append('image', imageFile)
+  return form
 }
 
 /** Per-product sales from the sales dashboard; matched to catalog items for the image/price. */
@@ -59,44 +74,41 @@ const getLiveItemSales = async (businessId: string): Promise<ItemSale[]> => {
     const price = num(row.product__selling_price)
     const units = num(row.quantity_sold)
     const item = items.find(product => product.name.toLowerCase() === name.toLowerCase()) ?? {
-      id: index + 1, name, weight: '0', price: String(price), image: str(row.product__image) || PLACEHOLDER_ITEM_IMAGE, inStock: str(row.product__status).toUpperCase() !== 'OUT-OF-STOCK',
+      id: index + 1, name, weight: '0', price: String(price), image: str(row.product__image), inStock: str(row.product__status).toUpperCase() !== 'OUT-OF-STOCK',
     }
     return { item, orders: null, units, revenue: units * (price || Number(item.price)), last: null }
   })
 }
 
-const getLiveItems = async (businessId: string) =>
-  listFrom(await apiRequest<unknown>(`product/business/${businessId}/?page=1&limit=100`), ['results.data', 'data', 'results']).map(mapProduct)
+const ALL_ITEMS_PAGE_SIZE = 100
+/** Safety stop: 2,000 items is far beyond what the shipment picker and bulk price tool need. */
+const MAX_ITEM_PAGES = 20
+
+/** Every virtual product (shipment item picker, bulk price update). */
+const getLiveItems = async (businessId: string) => {
+  const items: CatalogItem[] = []
+  for (let page = 1; page <= MAX_ITEM_PAGES; page += 1) {
+    const response = await apiRequest<unknown>(`product/virtual/${businessId}/?page=${page}&page_size=${ALL_ITEMS_PAGE_SIZE}`)
+    items.push(...listFrom(response, ['results', 'data', 'results.data']).map(mapVirtualProduct))
+    if (!at(response, 'next')) break
+  }
+  return items
+}
 
 /** Same cache entry as useItems, so the sales view doesn't refetch the product list. */
 const fetchItemsCached = (businessId: string) =>
   queryClient.fetchQuery({ queryKey: [...queryKeys.items, businessId], queryFn: () => getLiveItems(businessId), staleTime: 5 * 60 * 1000 })
 
-const dataUrlToFile = async (dataUrl: string, name: string) => {
-  const blob = await (await fetch(dataUrl)).blob()
-  return new File([blob], `${name.replace(/\W+/g, '-').toLowerCase() || 'item'}.${blob.type.split('/')[1] || 'jpg'}`, { type: blob.type })
+const addLiveItem = async (input: ItemInput) => {
+  const path = `product/virtual/${requireBusinessId()}/`
+  const response = input.imageFile
+    ? await apiFormRequest<unknown>(path, 'POST', toFormData(toPayload(input), input.imageFile))
+    : await apiRequest<unknown>(path, { method: 'POST', body: toPayload(input) })
+  return mapVirtualProduct(response)
 }
 
-const addLiveItem = async (input: NewItemInput) => {
-  const form = new FormData()
-  form.append('name', input.name)
-  form.append('selling_price', input.price || '0')
-  form.append('cost_price', input.price || '0')
-  form.append('weight', input.weight)
-  form.append('quantity', '1')
-  form.append('variation_type', 'single')
-  form.append('sell_online', 'true')
-  if (input.image.startsWith('data:')) form.append('images', await dataUrlToFile(input.image, input.name))
-  return mapProduct(await apiFormRequest<unknown>(`product/business/${requireBusinessId()}/`, 'POST', form))
-}
-
-const patchLiveProduct = (productId: string, fields: Record<string, string>) => {
-  const form = new FormData()
-  for (const [key, value] of Object.entries(fields)) form.append(key, value)
-  return apiFormRequest<unknown>(`product/single_product/${productId}/`, 'PATCH', form)
-}
-
-const patchLivePrice = (productId: string, price: string) => patchLiveProduct(productId, { selling_price: price })
+const patchLiveItem = (productId: string, fields: Record<string, unknown>) =>
+  apiRequest<unknown>(`product/virtual/${requireBusinessId()}/${productId}/`, { method: 'PATCH', body: fields })
 
 // ─── Sample-data services ───────────────────────────────────────────────────
 
@@ -110,31 +122,46 @@ const getMockItemSales = (): Promise<ItemSale[]> => {
   return mockDelay(rows.filter((row): row is ItemSale => row !== null))
 }
 
-const addMockItem = (input: NewItemInput) => {
-  const item: CatalogItem = { id: Date.now(), ...input, price: input.price || '0', image: input.image || PLACEHOLDER_ITEM_IMAGE, inStock: true }
+const addMockItem = (input: ItemInput) => {
+  const item: CatalogItem = { id: Date.now(), name: input.name, description: input.description, price: input.price || '0', weight: input.weight || '0', image: input.image, inStock: input.available, listed: input.listed }
   db.items = [...db.items, item]
   return mockDelay(item)
 }
 
 // ─── Unified services ───────────────────────────────────────────────────────
 
-const addItem = (input: NewItemInput) => (isLive() ? addLiveItem(input) : addMockItem(input))
+const addItem = (input: ItemInput) => (isLive() ? addLiveItem(input) : addMockItem(input))
 
-/**
- * Live: price changes save selling_price; the availability switch saves
- * sell_online (whether the product shows on the storefront), as in sink-inventory.
- */
-const updateItem = async ({ item, previous }: { item: CatalogItem; previous?: CatalogItem }) => {
-  if (isLive() && item.productId && previous?.price !== item.price) await patchLivePrice(item.productId, item.price)
-  if (isLive() && item.productId && previous && previous.inStock !== item.inStock) await patchLiveProduct(item.productId, { sell_online: String(item.inStock) })
-  if (!isLive()) db.items = db.items.map(current => (current.id === item.id ? item : current))
+/** Saves what changed on an item: a quick price or availability change, or the whole edit form. */
+const updateItem = async ({ imageFile, ...item }: CatalogItem & { imageFile?: File | null }) => {
+  if (isLive() && item.productId) {
+    const fields = {
+      name: item.name,
+      description: item.description ?? '',
+      price: item.price,
+      weight: item.weight,
+      availability: item.inStock,
+      listed_on_storefront: item.listed !== false,
+    }
+    if (imageFile) await apiFormRequest<unknown>(`product/virtual/${requireBusinessId()}/${item.productId}/`, 'PATCH', toFormData(fields, imageFile))
+    else await patchLiveItem(item.productId, fields)
+  } else {
+    db.items = db.items.map(current => (current.id === item.id ? item : current))
+  }
   return mockDelay(item, isLive() ? 0 : 250)
 }
 
-const increasePrices = async ({ percentage, items }: { percentage: number; items: CatalogItem[] }) => {
+const deleteItem = async (item: CatalogItem) => {
+  if (isLive() && item.productId) await apiRequest<unknown>(`product/virtual/${requireBusinessId()}/${item.productId}/`, { method: 'DELETE' })
+  else db.items = db.items.filter(current => current.id !== item.id)
+  return mockDelay(item, isLive() ? 0 : 250)
+}
+
+const increasePrices = async (percentage: number) => {
+  const items = isLive() ? await fetchItemsCached(requireBusinessId()) : db.items
   const updated = items.map(item => ({ ...item, price: String(Math.round(Number(item.price) * (1 + percentage / 100))) }))
   if (isLive()) {
-    for (const item of updated) if (item.productId) await patchLivePrice(item.productId, item.price)
+    for (const item of updated) if (item.productId) await patchLiveItem(item.productId, { price: item.price })
   } else {
     db.items = updated
   }
@@ -147,7 +174,7 @@ const pick = (row: SheetRow, ...keys: string[]) => {
   return entry?.[1]?.trim() ?? ''
 }
 
-/** Parses a CSV with columns: item name, weight (kg), selling price, stock status. Live: creates each row as a product. */
+/** Parses a CSV with columns: item name, description, weight (kg), selling price, availability. Live: creates each row. */
 const importItems = (file: File) =>
   new Promise<CatalogItem[]>((resolve, reject) => {
     Papa.parse<SheetRow>(file, {
@@ -155,18 +182,12 @@ const importItems = (file: File) =>
       skipEmptyLines: true,
       complete: async ({ data }) => {
         try {
-          const rows = data
-            .map(row => ({ name: pick(row, 'item name', 'name'), weight: pick(row, 'weight') || '0', price: pick(row, 'selling price', 'price') || '0', inStock: !/out|no|false|0/i.test(pick(row, 'stock')) }))
+          const rows: ItemInput[] = data
+            .map(row => ({ name: pick(row, 'item name', 'name'), description: pick(row, 'description'), weight: pick(row, 'weight') || '0', price: pick(row, 'selling price', 'price') || '0', image: '', available: !/out|no|false|0|unavailable/i.test(pick(row, 'availability', 'stock')), listed: true }))
             .filter(row => row.name)
-          if (isLive()) {
-            const created: CatalogItem[] = []
-            for (const row of rows) created.push(await addLiveItem({ name: row.name, weight: row.weight, price: row.price, image: '' }))
-            resolve(created)
-            return
-          }
-          const imported = rows.map((row, index): CatalogItem => ({ id: Date.now() + index, ...row, image: PLACEHOLDER_ITEM_IMAGE }))
-          db.items = [...db.items, ...imported]
-          resolve(imported)
+          const created: CatalogItem[] = []
+          for (const row of rows) created.push(await addItem(row))
+          resolve(created)
         } catch (error) {
           reject(error)
         }
@@ -182,23 +203,27 @@ const useItemsKey = () => {
   return { key: [...queryKeys.items, isLive() ? businessId : 'mock'] as const, businessId }
 }
 
-export type ItemsPageQuery = { page: number; limit: number; search: string }
+export type ItemsPageQuery = { page: number; limit: number; search: string; availability?: boolean; listed?: boolean }
 export type ItemsPageResult = { items: CatalogItem[]; pages: number; total: number }
 
-/** One page of products — GET product/business/{id}/?page&limit&search, as sink-inventory pages its product list. */
-const getItemsPage = async (businessId: string, { page, limit, search }: ItemsPageQuery): Promise<ItemsPageResult> => {
+/** One page of virtual products, with the endpoint's search and availability/storefront filters. */
+const getItemsPage = async (businessId: string, { page, limit, search, availability, listed }: ItemsPageQuery): Promise<ItemsPageResult> => {
   if (!isLive()) {
     const term = search.toLowerCase()
-    const all = db.items.filter(item => !term || item.name.toLowerCase().includes(term))
+    const all = db.items.filter(item =>
+      (!term || item.name.toLowerCase().includes(term))
+      && (availability === undefined || item.inStock === availability)
+      && (listed === undefined || (item.listed !== false) === listed))
     return mockDelay({ items: all.slice((page - 1) * limit, page * limit).map(item => ({ ...item })), pages: Math.max(Math.ceil(all.length / limit), 1), total: all.length })
   }
-  const params = new URLSearchParams({ page: String(page), limit: String(limit) })
+  const params = new URLSearchParams({ page: String(page), page_size: String(limit) })
   if (search) params.set('search', search)
-  const response = await apiRequest<unknown>(`product/business/${businessId}/?${params.toString()}`)
-  const items = listFrom(response, ['results.data', 'data', 'results']).map(mapProduct)
-  const total = num(at(response, 'total')) || num(at(response, 'count')) || num(at(response, 'results.total')) || items.length
-  const pages = num(at(response, 'pages')) || num(at(response, 'results.pages')) || num(at(response, 'total_pages')) || Math.ceil(total / limit)
-  return { items, pages: Math.max(pages, 1), total }
+  if (availability !== undefined) params.set('availability', String(availability))
+  if (listed !== undefined) params.set('listed_on_storefront', String(listed))
+  const response = await apiRequest<unknown>(`product/virtual/${businessId}/?${params.toString()}`)
+  const items = listFrom(response, ['results', 'data', 'results.data']).map(mapVirtualProduct)
+  const total = num(at(response, 'count')) || items.length
+  return { items, pages: Math.max(Math.ceil(total / limit), 1), total }
 }
 
 export const useItemsPage = (query: ItemsPageQuery) => {
@@ -240,27 +265,54 @@ export const useAddItem = () => {
   return useMutation({ mutationFn: addItem, onSuccess: invalidate })
 }
 
-/** Saves an item (price/availability). Signature unchanged: pass the updated item. */
+/** Saves an item (edit form, quick price change, availability or storefront switch). */
 export const useUpdateItem = () => {
-  const queryClient = useQueryClient()
-  const { key } = useItemsKey()
-  return useMutation({
-    mutationFn: (item: CatalogItem) => updateItem({ item, previous: queryClient.getQueryData<CatalogItem[]>(key)?.find(current => current.id === item.id) }),
-    onSuccess: item => {
-      queryClient.setQueryData<CatalogItem[]>(key, current => current?.map(existing => (existing.id === item.id ? item : existing)))
-      if (!isLive()) queryClient.invalidateQueries({ queryKey: queryKeys.items })
-    },
-  })
+  const invalidate = useInvalidateItems()
+  return useMutation({ mutationFn: updateItem, onSuccess: invalidate })
 }
 
-/** Signature unchanged: pass the percentage. */
+export const useDeleteItem = () => {
+  const invalidate = useInvalidateItems()
+  return useMutation({ mutationFn: deleteItem, onSuccess: invalidate })
+}
+
+/** Raises every item's price by a percentage. */
 export const useIncreasePrices = () => {
+  const invalidate = useInvalidateItems()
+  return useMutation({ mutationFn: increasePrices, onSuccess: invalidate })
+}
+
+// ─── Storefront catalog source ──────────────────────────────────────────────
+
+export type StorefrontSource = 'INVENTORY' | 'VIRTUAL'
+
+let mockSource: StorefrontSource = 'VIRTUAL'
+
+/** Which catalog the public storefront serves: inventory products or these items. */
+export const useStorefrontSource = () => {
+  const { businessId } = useCurrentBusinessId()
   const queryClient = useQueryClient()
-  const { key } = useItemsKey()
-  return useMutation({
-    mutationFn: (percentage: number) => increasePrices({ percentage, items: queryClient.getQueryData<CatalogItem[]>(key) ?? [] }),
-    onSuccess: items => queryClient.setQueryData(key, items),
+  const key = ['storefront-source', isLive() ? businessId : 'mock'] as const
+  const query = useQuery({
+    queryKey: key,
+    queryFn: async (): Promise<StorefrontSource> => {
+      if (!isLive()) return mockDelay(mockSource, 150)
+      return str((await fetchCurrentBusiness()).raw.storefront_product_source).toUpperCase() === 'VIRTUAL' ? 'VIRTUAL' : 'INVENTORY'
+    },
+    enabled: !isLive() || Boolean(businessId),
   })
+  const mutation = useMutation({
+    mutationFn: async (source: StorefrontSource) => {
+      if (isLive()) await apiRequest<unknown>(`business/${requireBusinessId()}/`, { method: 'PATCH', body: { storefront_product_source: source } })
+      else mockSource = source
+      return source
+    },
+    onSuccess: source => {
+      queryClient.setQueryData(key, source)
+      queryClient.invalidateQueries({ queryKey: queryKeys.business })
+    },
+  })
+  return { source: query.data ?? 'INVENTORY', isLoading: query.isLoading, setSource: mutation.mutate, isSaving: mutation.isPending }
 }
 
 /** Only .csv is parsed for now; .xlsx support needs the `xlsx` package (used in sink-inventory). */
@@ -270,7 +322,7 @@ export const useImportItems = () => {
 }
 
 export const downloadImportTemplate = () => {
-  const csv = 'Item name,Weight (kg),Selling price,Stock status\nClassic leather handbag,2.5,48000,In stock\n'
+  const csv = 'Item name,Description,Weight (kg),Selling price,Availability\nClassic leather handbag,Full-grain leather,2.5,48000,Available\n'
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
   const anchor = document.createElement('a')
   anchor.href = url

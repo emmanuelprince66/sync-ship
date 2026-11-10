@@ -1,3 +1,4 @@
+import { ItemImage } from '@/components/ui/ItemImage'
 import { Button } from '@/components/ui/Button'
 import { Icon } from '@/components/ui/Icon'
 import { MediaCardGridSkeleton } from '@/components/ui/Skeleton'
@@ -31,11 +32,10 @@ function ItemRow({ index, wizard }: { index: number; wizard: CreateShipmentWizar
 }
 
 export function PackageStep({ wizard }: { wizard: CreateShipmentWizard }) {
-  const { fields, catalog, catalogLoading, showCatalogNote, addProduct, addFromCatalog, itemPanel } = wizard
+  const { fields, catalog, catalogLoading, addProduct, addFromCatalog, itemPanel } = wizard
   return <div>
     <div className="mb-6 flex items-end justify-between gap-3"><div><div className="text-lg font-black text-[#0F3124]">What are you sending?</div><div className="mt-1 text-xs text-[#7E8E86]">Add the items and their package weight for an accurate delivery rate.</div></div>{fields.length > 0 && <Button variant="outline" icon="plus" onClick={addProduct} className="hidden shrink-0 sm:flex">Add item</Button>}</div>
-    {(catalogLoading || catalog.length > 0) && <div className="mb-6"><div className="mb-3 flex items-center justify-between gap-3"><div className="text-xs font-extrabold text-[#28483B]">Select from your item list</div><div className="text-[10px] text-[#899890]">Saved items fill automatically</div></div>{catalogLoading ? <MediaCardGridSkeleton count={3} className="grid grid-cols-2 gap-3 sm:grid-cols-3" imageClassName="h-24"/> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{catalog.map(item => <button type="button" key={item.id} onClick={() => addFromCatalog(item)} className="group overflow-hidden rounded-2xl border border-[#DFE8E2] bg-white text-left transition hover:border-[#529661] hover:shadow-[0_8px_24px_rgba(19,63,43,.08)]"><img src={item.image} alt={item.name} className="h-24 w-full object-cover"/><div className="p-3"><div className="truncate text-[11px] font-extrabold text-[#28483B]">{item.name}</div><div className="mt-1 flex items-center justify-between text-[9px] text-[#87968F]"><span>{item.weight} kg</span><span className="font-extrabold text-[#438352]">+ Add</span></div></div></button>)}</div>}</div>}
-    {showCatalogNote && <div role="note" className="mb-4 flex items-start gap-2 rounded-xl bg-[#FFF8E8] p-3 text-[11px] leading-5 text-[#80662B]"><Icon name="clock" size={16}/><span>Orders can only be created for products saved in your item list. Remove items you typed in and pick them from the list above.</span></div>}
+    {(catalogLoading || catalog.length > 0) && <div className="mb-6"><div className="mb-3 flex items-center justify-between gap-3"><div className="text-xs font-extrabold text-[#28483B]">Select from your item list</div><div className="text-[10px] text-[#899890]">Saved items fill automatically</div></div>{catalogLoading ? <MediaCardGridSkeleton count={3} className="grid grid-cols-2 gap-3 sm:grid-cols-3" imageClassName="h-24"/> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">{catalog.map(item => <button type="button" key={item.id} onClick={() => addFromCatalog(item)} className="group overflow-hidden rounded-2xl border border-[#DFE8E2] bg-white text-left transition hover:border-[#529661] hover:shadow-[0_8px_24px_rgba(19,63,43,.08)]"><ItemImage src={item.image} alt={item.name} className="h-24 w-full" iconSize={22}/><div className="p-3"><div className="truncate text-[11px] font-extrabold text-[#28483B]">{item.name}</div><div className="mt-1 flex items-center justify-between text-[9px] text-[#87968F]"><span>{item.weight} kg</span><span className="font-extrabold text-[#438352]">+ Add</span></div></div></button>)}</div>}</div>}
     {fields.length === 0
       ? <EmptyProduct onAdd={addProduct}/>
       : <>

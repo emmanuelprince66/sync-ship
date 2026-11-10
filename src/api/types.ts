@@ -46,8 +46,13 @@ export type CatalogItem = {
   weight: string
   /** NGN, as string to match form input. */
   price: string
+  /** Empty when the item has no picture yet. */
   image: string
+  /** Available to order (`availability` on the API). */
   inStock: boolean
+  /** Shows on the public storefront (`listed_on_storefront`). */
+  listed?: boolean
+  description?: string
   /** Live only: backend product UUID (`id` is a stable numeric key for the UI). */
   productId?: string
   /** Live only: units in stock. */

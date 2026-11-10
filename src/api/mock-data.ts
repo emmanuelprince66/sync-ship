@@ -22,9 +22,9 @@ export const db: {
     { id: 'SH-28431', customer: 'Mariam Bello', destination: 'Ajah, Lagos', carrier: 'Kwik Delivery', status: 'Delivered', amount: '₦7,200', date: 'Aug 23, 2:16 PM' },
   ],
   items: [
-    { id: 1, name: 'Classic leather handbag', weight: '2.5', price: '48000', inStock: true, image: 'https://images.unsplash.com/photo-1654707635478-b57d95c4e8e1?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=80&w=800' },
-    { id: 2, name: 'Ivory mini bag', weight: '1.2', price: '32500', inStock: true, image: 'https://images.unsplash.com/photo-1623683945420-f0f890b59b6b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=80&w=800' },
-    { id: 3, name: 'Home fragrance candle', weight: '0.8', price: '18500', inStock: false, image: 'https://images.unsplash.com/photo-1570431309787-5874f7dd7593?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=80&w=800' },
+    { id: 1, description: 'Full-grain leather with brass hardware', listed: true, name: 'Classic leather handbag', weight: '2.5', price: '48000', inStock: true, image: 'https://images.unsplash.com/photo-1654707635478-b57d95c4e8e1?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=80&w=800' },
+    { id: 2, listed: true, name: 'Ivory mini bag', weight: '1.2', price: '32500', inStock: true, image: 'https://images.unsplash.com/photo-1623683945420-f0f890b59b6b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=80&w=800' },
+    { id: 3, listed: false, name: 'Home fragrance candle', weight: '0.8', price: '18500', inStock: false, image: 'https://images.unsplash.com/photo-1570431309787-5874f7dd7593?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=80&w=800' },
   ],
   partners: [
     { id: 1, name: 'Kwik', full: 'Kwik Delivery', initials: 'K', color: '#E84855', price: 4650, eta: '45–60 mins', rating: '4.8', tag: 'Best value' },

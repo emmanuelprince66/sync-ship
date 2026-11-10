@@ -1,5 +1,6 @@
 import { Field } from '@/components/ui/Field'
 import { Icon } from '@/components/ui/Icon'
+import { OptionSelect } from '@/components/ui/OptionSelect'
 import { cn } from '@/lib/cn'
 import { formatNaira } from '@/lib/format'
 import { PAYMENT_METHOD_OPTIONS, PAYMENT_STATUS_OPTIONS, type CreateShipmentWizard } from '../../hooks/useCreateShipmentWizard'
@@ -24,17 +25,7 @@ function PaymentSection({ wizard }: { wizard: CreateShipmentWizard }) {
           <Icon name={option.icon} size={15}/><span className="text-[11px] font-extrabold text-[#29483B]">{option.label}</span>
         </button>)}
       </div>
-      {payment.method === 'BANK' && <label className="block">
-        <span className="mb-2 block text-[12px] font-extrabold text-[#34483F]">Received into</span>
-        <span className={cn('relative flex h-12 items-center rounded-xl border border-[#DCE7E0] bg-white px-3.5 focus-within:border-[#529661] focus-within:ring-4 focus-within:ring-[#529661]/10', errors.payment?.bankId && 'border-[#E65A4F]')}>
-          <select disabled={banksLoading} className="w-full appearance-none bg-transparent text-sm font-semibold text-[#09261C] outline-none" {...register('payment.bankId')}>
-            <option value="">{banksLoading ? 'Loading accounts…' : bankOptions.length ? 'Select an account' : 'No settlement accounts yet'}</option>
-            {bankOptions.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
-          </select>
-          <Icon name="chevron" size={17}/>
-        </span>
-        {errors.payment?.bankId && <span role="alert" className="mt-1.5 block text-[11px] font-semibold text-[#D15B50]">{errors.payment.bankId.message}</span>}
-      </label>}
+      {payment.method === 'BANK' && <OptionSelect label="Received into" disabled={banksLoading} placeholder={banksLoading ? 'Loading accounts…' : bankOptions.length ? 'Select an account' : 'No settlement accounts yet'} options={bankOptions.map(option => ({ value: String(option.id), label: option.label }))} error={errors.payment?.bankId?.message} {...register('payment.bankId')}/>}
       {payment.status === 'PARTIAL' && <Field label="Amount paid so far" type="number" min={0} inputMode="decimal" suffix="NGN" error={errors.payment?.amountPaid?.message} {...register('payment.amountPaid')}/>}
     </div>}
   </div>

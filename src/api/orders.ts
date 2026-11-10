@@ -26,7 +26,7 @@ export type OrderPayment = { status: OrderPaymentStatus; method?: OrderPaymentMe
 /** Payment keys exactly as sink sends them: method/bank/amount only when something was paid. */
 const paymentPayload = ({ status, method, bankId, amountPaid }: OrderPayment) => ({
   payment_status: status,
-  ...(status !== 'UNPAID' ? { payment_method: method === 'BANK' ? 'BANK-TRANSFER' : 'CASH' } : {}),
+  ...(status !== 'UNPAID' ? { payment_method: method === 'BANK' ? 'BANK' : 'CASH' } : {}),
   ...(status !== 'UNPAID' && method === 'BANK' && bankId ? { bank: bankId } : {}),
   ...(status !== 'UNPAID' && amountPaid ? { amount_paid: amountPaid.toFixed(2) } : {}),
 })

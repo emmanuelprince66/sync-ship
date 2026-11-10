@@ -9,7 +9,7 @@ export function ImportItemsModal({ open, onClose }: { open: boolean; onClose: ()
 
   return <Modal open={open} onClose={onClose} panelClassName="w-full max-w-lg rounded-3xl bg-white p-7">
     <ModalHeader title="Import items from Excel" description="Add many products to your account at once." onClose={onClose} closeButton="plain"/>
-    <div className="mt-6 rounded-2xl bg-[#F1F7F1] p-4 text-[10px] leading-5 text-[#60766A]"><strong className="text-[#315A3E]">Required columns:</strong> Item name, weight (kg), selling price, and stock status. Product images can be added after import.</div>
+    <div className="mt-6 rounded-2xl bg-[#F1F7F1] p-4 text-[10px] leading-5 text-[#60766A]"><strong className="text-[#315A3E]">Required columns:</strong> Item name and selling price. Optional: description, weight (kg), and availability. You can add pictures after import.</div>
     <FilePicker accept=".csv,text/csv" onFile={importSheet} className="mt-5 flex flex-col items-center rounded-2xl border-2 border-dashed border-[#C9D8CF] p-9 text-center">
       <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF5E9] text-[#438352]">{isImporting ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent"/> : <Icon name="download" size={21}/>}</div>
       <div className="mt-3 text-xs font-extrabold text-[#28483B]">Choose Excel or CSV file</div>

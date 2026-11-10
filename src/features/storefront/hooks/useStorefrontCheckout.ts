@@ -26,7 +26,7 @@ export function useStorefrontCheckout() {
   const [selectedRateId, setSelectedRateId] = useState(1)
   const [orderNumber, setOrderNumber] = useState('')
 
-  const available = items.filter(item => item.inStock)
+  const available = items.filter(item => item.inStock && item.listed !== false)
   const cart = useCart(available)
   const query = search.trim().toLowerCase()
   const visibleProducts = query ? available.filter(item => item.name.toLowerCase().includes(query)) : available

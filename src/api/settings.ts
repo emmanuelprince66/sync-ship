@@ -4,6 +4,7 @@ import { fetchCurrentBusiness, requireBusinessId, useCurrentBusinessId, type Bus
 import { asRecord, isLive, listFrom, num, str } from './http'
 import { db } from './mock-data'
 import { queryKeys } from './query-keys'
+import { getStoreUrl } from './storefront-settings'
 import type { BusinessSettings, Employee, EmployeeRole, InviteEmployeeInput, StaffRole } from './types'
 
 /**
@@ -44,7 +45,8 @@ const mergeBusiness = (business: Business, base: BusinessSettings): BusinessSett
   const pickup = sb ? [sb.street, sb.city, sb.state].filter(Boolean).join(', ') : ''
   return {
     ...base,
-    storeUrl: business.storeUrl || base.storeUrl,
+    // The API returns only the slug; this is the public address customers open.
+    storeUrl: business.storeUrl ? getStoreUrl({ storeSlug: business.storeUrl, customDomain: str(raw.custom_domain), customDomainApproved: raw.custom_domain_approved === true }, 'OUTSTORE') : base.storeUrl,
     storefront: {
       ...base.storefront,
       name: business.name || base.storefront.name,

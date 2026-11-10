@@ -1,4 +1,3 @@
-import { Button } from '@/components/ui/Button'
 import { Icon } from '@/components/ui/Icon'
 import { cn } from '@/lib/cn'
 import { useMobileSidebar, useTopBar } from './hooks'
@@ -30,8 +29,6 @@ export function Header() {
           <Icon name="bell" size={18}/>
           {bar.unread > 0 && <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-[#E65A4F] px-1 text-[9px] font-extrabold text-white">{bar.unread > 99 ? '99+' : bar.unread}</span>}
         </button>
-        <Button icon="plus" onClick={bar.createShipment} className="hidden sm:flex">Create shipment</Button>
-        <Button icon="plus" aria-label="Create shipment" onClick={bar.createShipment} className="h-10 w-10 gap-0 p-0 sm:hidden"/>
         <div className="hidden h-7 w-px bg-[#E4EBE7] sm:block" aria-hidden="true"/>
         <ProfileMenu/>
       </div>

@@ -1,5 +1,6 @@
 import { cn } from '@/lib/cn'
 import { Icon } from './Icon'
+import { Select } from './Select'
 
 type PaginationProps = {
   currentPage: number
@@ -27,12 +28,10 @@ export function Pagination({ currentPage, totalPages, onPageChange, pageSize, on
   return <div className={cn('flex flex-col items-center justify-between gap-3 border-t border-[#EBF0ED] px-4 py-3 sm:flex-row sm:px-5', className)}>
     <div className="order-2 text-[11px] font-semibold text-[#829189] sm:order-1">Page {Math.min(currentPage, pages)} of {pages}</div>
     <div className="order-1 flex w-full items-center justify-between gap-4 sm:order-2 sm:w-auto sm:justify-end">
-      {pageSize !== undefined && onPageSizeChange && <label className="flex items-center gap-2">
+      {pageSize !== undefined && onPageSizeChange && <div className="flex items-center gap-2">
         <span className="hidden whitespace-nowrap text-[11px] font-bold text-[#53665D] sm:inline">Rows per page</span>
-        <select value={pageSize} onChange={event => onPageSizeChange(Number(event.target.value))} aria-label="Rows per page" className="h-8 rounded-lg border border-[#DFE7E2] bg-white px-2 text-xs font-bold text-[#34483F] outline-none focus:border-[#529661]">
-          {pageSizeOptions.map(size => <option key={size} value={size}>{size}</option>)}
-        </select>
-      </label>}
+        <Select aria-label="Rows per page" options={pageSizeOptions.map(size => ({ value: String(size), label: String(size) }))} value={String(pageSize)} onValueChange={size => onPageSizeChange(Number(size))} className="w-[72px]" boxClassName="h-8 rounded-lg px-2 text-xs font-bold"/>
+      </div>}
       <div className="flex items-center gap-2">
         <PageButton label="Go to first page" icon="double" flip onClick={() => onPageChange(1)} disabled={!canGoPrevious} className="hidden lg:flex"/>
         <PageButton label="Go to previous page" icon="arrow" flip onClick={() => onPageChange(currentPage - 1)} disabled={!canGoPrevious}/>

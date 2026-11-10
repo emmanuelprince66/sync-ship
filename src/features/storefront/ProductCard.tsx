@@ -1,3 +1,4 @@
+import { ItemImage } from '@/components/ui/ItemImage'
 import type { CatalogItem } from '@/api/types'
 import { Button } from '@/components/ui/Button'
 import { Icon } from '@/components/ui/Icon'
@@ -7,7 +8,7 @@ type ProductCardProps = { item: CatalogItem; quantity: number; onAdd: () => void
 
 export function ProductCard({ item, quantity, onAdd, onRemove }: ProductCardProps) {
   return <div className="group overflow-hidden rounded-3xl border border-[#E0E8E3] bg-white transition hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(17,49,37,.09)]">
-    <div className="overflow-hidden"><img src={item.image} alt={item.name} className="h-64 w-full object-cover transition duration-500 group-hover:scale-105"/></div>
+    <div className="overflow-hidden"><ItemImage src={item.image} alt={item.name} className="h-64 w-full transition duration-500 group-hover:scale-105" iconSize={36}/></div>
     <div className="p-5">
       <div className="text-sm font-extrabold text-[#28483B]">{item.name}</div>
       <div className="mt-1 text-[10px] text-[#87968F]">{item.weight} kg · Ready to ship</div>

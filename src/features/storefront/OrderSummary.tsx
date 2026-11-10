@@ -1,3 +1,4 @@
+import { ItemImage } from '@/components/ui/ItemImage'
 import { Button } from '@/components/ui/Button'
 import { formatNaira } from '@/lib/format'
 import type { CartLine } from './hooks/useCart'
@@ -9,7 +10,7 @@ type OrderSummaryProps = { lines: CartLine[]; subtotal: number; deliveryFee: num
 export function OrderSummary({ lines, subtotal, deliveryFee, total }: OrderSummaryProps) {
   return <div className="h-fit rounded-3xl bg-[#09261C] p-6 text-white">
     <div className="text-sm font-extrabold">Order summary</div>
-    <div className="mt-5 space-y-4">{lines.map(line => <div key={line.item.id} className="flex items-center gap-3"><img src={line.item.image} alt="" className="h-10 w-10 rounded-lg object-cover"/><div className="min-w-0 flex-1"><div className="truncate text-[10px] font-bold">{line.item.name}</div><div className="mt-0.5 text-[9px] text-white/50">Qty {line.quantity}</div></div><span className="text-[10px] font-extrabold">{formatNaira(line.total)}</span></div>)}</div>
+    <div className="mt-5 space-y-4">{lines.map(line => <div key={line.item.id} className="flex items-center gap-3"><ItemImage src={line.item.image} alt="" className="h-10 w-10 rounded-lg" iconSize={15}/><div className="min-w-0 flex-1"><div className="truncate text-[10px] font-bold">{line.item.name}</div><div className="mt-0.5 text-[9px] text-white/50">Qty {line.quantity}</div></div><span className="text-[10px] font-extrabold">{formatNaira(line.total)}</span></div>)}</div>
     <div className="mt-5 space-y-3 border-t border-white/10 pt-5 text-xs">
       <div className="flex justify-between text-white/55"><span>Products</span><span>{formatNaira(subtotal)}</span></div>
       <div className="flex justify-between text-white/55"><span>Delivery</span><span>{formatNaira(deliveryFee)}</span></div>

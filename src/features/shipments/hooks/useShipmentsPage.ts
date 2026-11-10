@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router'
+import { paths } from '@/routes/paths'
 import { useCallback, useRef, useState } from 'react'
 import { exportShipmentsCsv, useShipmentsPage as useShipmentsPageQuery, useShipmentStats } from '@/api/shipments'
 import type { ShipmentStatus } from '@/api/types'
@@ -27,7 +29,8 @@ export function useShipmentsPage(tracking: boolean) {
   if (filters.debouncedSearch !== searchTerm) { setSearchTerm(filters.debouncedSearch); setPage(1) }
   if (filters.status !== statusTerm) { setStatusTerm(filters.status); setPage(1) }
   const drawer = useShipmentDrawer()
-  const statusRef = useRef<HTMLSelectElement>(null)
+  const navigate = useNavigate()
+  const statusRef = useRef<HTMLDivElement>(null)
 
   const statCards = stats ? [
     { label: 'Total shipments', value: stats.totalShipments.toLocaleString(), change: stats.deliverySpend > 0 ? `${formatNaira(stats.deliverySpend)} in fees` : undefined, icon: 'box' as const, color: '#4774C9' },
@@ -47,7 +50,9 @@ export function useShipmentsPage(tracking: boolean) {
     pagination: { page, pages: shipmentsQuery.data?.pages ?? 1, pageSize, setPage, setPageSize: (size: number) => { setPageSize(size); setPage(1) } },
     drawer,
     statusRef,
-    focusStatusFilter: useCallback(() => statusRef.current?.focus(), []),
+    /** Opens the status dropdown. */
+    focusStatusFilter: useCallback(() => statusRef.current?.querySelector('button')?.click(), []),
+    createShipment: () => navigate(paths.createShipment),
     exportCsv: () => exportShipmentsCsv(filters.filtered),
   }
 }

@@ -88,7 +88,6 @@ export function useTopBar() {
     menuOpen,
     toggleMenu: () => setMenuOpen(open => !open),
     closeMenu,
-    createShipment: () => navigate(paths.createShipment),
     goToBusinessSettings: () => go(settingsPath('Storefront')),
     goToKyc: () => go(paths.kyc),
     switchBusiness: () => { setMenuOpen(false); navigate(paths.selectBusiness, { state: { from: pathname } }) },

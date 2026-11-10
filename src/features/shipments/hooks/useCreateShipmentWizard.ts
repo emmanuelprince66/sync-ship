@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { errorMessage } from '@/api/auth'
 import { useSettlementAccounts } from '@/api/banks'
 import { isLive } from '@/api/http'
-import { useItems } from '@/api/items'
+import { useAddItem, useItems } from '@/api/items'
 import { useBusinessSettings } from '@/api/settings'
 import { useShipbubbleSettings, useShippingMethods } from '@/api/shipping-settings'
 import { packageTotal, useCreateShipment, useDeliveryPartners, useShipmentRates } from '@/api/shipments'
@@ -57,6 +57,7 @@ export function useCreateShipmentWizard() {
   const [products, method, customer, partnerId, payment] = useWatch({ control, name: ['products', 'method', 'customer', 'partnerId', 'payment'] })
 
   const itemsQuery = useItems()
+  const addItem = useAddItem()
   const partnersQuery = useDeliveryPartners()
   const ratesMutation = useShipmentRates()
   const shipbubble = useShipbubbleSettings()
@@ -90,8 +91,25 @@ export function useCreateShipmentWizard() {
   const orderTotal = total + deliveryFee
   const amountPaid = payment.status === 'PAID' ? orderTotal : payment.status === 'PARTIAL' ? Number(payment.amountPaid) || 0 : 0
 
-  /** Live orders are created from saved products only (as in sink-inventory). */
-  const missingCatalogItems = live && products.length > 0 && !products.every(item => item.productId)
+  /** Checkout links open the storefront, so every item has to be listed there. */
+  const hasItemsNotOnStore = live && products.some(item => !item.productId || (itemsQuery.data ?? []).find(saved => saved.productId === item.productId)?.listed === false)
+
+  /** Live orders need saved products: typed items become products that stay off the storefront, reusing an identical one if it exists. */
+  const saveTypedItems = async () => {
+    if (!live) return true
+    try {
+      for (const [index, item] of getValues('products').entries()) {
+        if (item.productId) continue
+        const existing = (itemsQuery.data ?? []).find(saved => saved.productId && saved.name.toLowerCase() === item.name.toLowerCase() && Number(saved.price) === Number(item.amount) && Number(saved.weight) === Number(item.weight))
+        const productId = existing?.productId ?? (await addItem.mutateAsync({ name: item.name, description: '', price: item.amount, weight: item.weight, image: '', available: true, listed: false })).productId
+        setValue(`products.${index}.productId`, productId)
+      }
+      return true
+    } catch (error) {
+      toast.error(errorMessage(error, 'We couldn’t save your items. Please try again.'))
+      return false
+    }
+  }
 
   /** Fetches Shipbubble quotes for the package and address, then preselects the first rate. */
   const requestLiveRates = () => {
@@ -164,12 +182,11 @@ export function useCreateShipmentWizard() {
   }
 
   const next = async () => {
-    if (step === 1) {
-      if (!(await trigger('products'))) return
-      if (missingCatalogItems) return toast.error('Pick the items from your item list. Orders can only be created for saved products.')
-    }
+    if (step === 1 && !(await trigger('products'))) return
+    if (step === 2 && !isMerchant && hasItemsNotOnStore) return toast.error('Checkout links can only include items listed on your storefront.')
     if (step === 2 && isMerchant) {
       if (!(await trigger('customer'))) return
+      if (!(await saveTypedItems())) return
       if (deliveryMode === 'shipbubble') requestLiveRates()
     }
     if (step === 4) {
@@ -207,8 +224,6 @@ export function useCreateShipmentWizard() {
     products,
     catalog: (itemsQuery.data ?? []).filter(item => item.inStock),
     catalogLoading: itemsQuery.isLoading,
-    /** Live mode: ad-hoc items can't be ordered — the backend needs saved products. */
-    showCatalogNote: missingCatalogItems,
     addProduct: () => setItemPanel({ open: true, index: null }),
     editProduct: (index: number) => setItemPanel({ open: true, index }),
     itemPanel: {
@@ -218,7 +233,12 @@ export function useCreateShipmentWizard() {
       close: () => setItemPanel(current => ({ ...current, open: false })),
       save: (values: PackageItemValues) => {
         if (itemPanel.index === null) append(values)
-        else update(itemPanel.index, { ...products[itemPanel.index], ...values })
+        else {
+          const current = products[itemPanel.index]
+          // A changed name, price or weight no longer matches the saved product, so it's saved again at booking.
+          const changed = current.name !== values.name || current.amount !== values.amount || current.weight !== values.weight
+          update(itemPanel.index, { ...current, ...values, productId: changed ? undefined : current.productId })
+        }
         setItemPanel({ open: false, index: null })
       },
     },
@@ -228,6 +248,7 @@ export function useCreateShipmentWizard() {
     method,
     setMethod: (value: CheckoutMethod) => setValue('method', value, { shouldDirty: true }),
     hasStoreLink: !live || checkout.hasStore,
+    showStoreItemsNote: hasItemsNotOnStore,
     pickup,
     customer,
     stateOptions: NIGERIAN_STATES,
@@ -263,7 +284,7 @@ export function useCreateShipmentWizard() {
     backLabel: step === 1 ? 'Cancel' : 'Back',
     primaryLabel,
     primaryIcon,
-    isSubmitting: createShipment.isPending,
+    isSubmitting: createShipment.isPending || addItem.isPending,
     close,
     // Success screen
     result,
