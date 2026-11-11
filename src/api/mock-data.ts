@@ -3,7 +3,19 @@
  * session. Replace each service in src/api/*.ts with a real call as backend
  * endpoints become available; components only depend on the hooks.
  */
+import type { UnknownRecord } from './http'
 import type { BusinessSettings, CatalogItem, DashboardStats, DeliveryPartner, Employee, Shipment, Wallet } from './types'
+
+const daysAgo = (days: number) => new Date(Date.now() - days * 86400 * 1000).toISOString()
+
+/** A customer row in the shape GET customer/{business_id}/ answers (sink-inventory's backend). */
+const customerRow = (id: string, name: string, phone: string, email: string, totalSales: number, salesCount: number, wallet: number, debt: number, status: string, extra: UnknownRecord = {}): UnknownRecord => ({
+  id, name, phone, email, total_sales: totalSales, sales_count: salesCount, wallet_balance: wallet, credit_balance: debt, status,
+  customer_code: `CUS-${id.slice(-6).toUpperCase()}`, gender: null, date_of_birth: null, notes: '', addresses: [], last_visit: daysAgo(salesCount ? 3 : 60), created_at: daysAgo(200), ...extra,
+})
+
+const customerAddress = (street: string, city: string, state: string) => ({ id: `addr-${street.length}`, address: street, city, state, country: 'Nigeria', phone: null, is_default: true, created_at: daysAgo(120) })
+
 
 export const db: {
   shipments: Shipment[]
@@ -13,6 +25,8 @@ export const db: {
   settings: BusinessSettings
   employees: Employee[]
   stats: DashboardStats
+  /** Raw backend-shaped customer records, mapped by src/api/customers.ts. */
+  customers: UnknownRecord[]
 } = {
   shipments: [
     { id: 'SH-28451', customer: 'Amaka Nwosu', destination: 'Lekki, Lagos', carrier: 'Kwik Delivery', status: 'In transit', amount: '₦6,450', date: 'Today, 10:24 AM' },
@@ -57,6 +71,30 @@ export const db: {
     { id: 'emp-3', name: 'Ada Okeke', email: '', phone: '0805 444 5566', role: 'ATTENDANT', roleLabel: 'Attendant', status: 'Inactive' },
   ],
   stats: { totalShipments: 1284, inTransit: 18, deliveredThisMonth: 342, deliverySpend: 428650, fulfilled: 1146, pending: 18 },
+  customers: [
+    customerRow('mock-cus-a1b2c3', 'Amaka Nwosu', '08032457791', 'amaka@example.com', 284500, 14, 12000, 0, 'Active', { gender: 'FEMALE', date_of_birth: '1992-04-18', tier_name: 'Gold', notes: 'Prefers deliveries after 4pm. Gate code 2210.', addresses: [customerAddress('14 Admiralty Way', 'Lekki', 'Lagos')] }),
+    customerRow('mock-cus-d4e5f6', 'Tobi Adeyemi', '08124401290', 'tobi@example.com', 96500, 6, 0, 18500, 'Active', { gender: 'MALE', addresses: [customerAddress('3 Herbert Macaulay Way', 'Yaba', 'Lagos')] }),
+    customerRow('mock-cus-g7h8i9', 'Seyi Martins', '07065512340', '', 41200, 3, 2500, 0, 'New', { gender: 'FEMALE' }),
+    customerRow('mock-cus-j1k2l3', 'Ibrahim Musa', '09033218877', 'ibrahim.musa@example.com', 187000, 11, 0, 0, 'At Risk', { gender: 'MALE', addresses: [customerAddress('22 Ahmadu Bello Way', 'Garki', 'Federal Capital Territory')] }),
+    customerRow('mock-cus-m4n5o6', 'Mariam Bello', '08055230012', 'mariam@example.com', 12500, 1, 0, 0, 'Inactive', { addresses: [customerAddress('5 Ado Road', 'Ajah', 'Lagos')] }),
+    customerRow('mock-cus-p7q8r9', 'Jide Okafor', '08188776655', '', 63800, 5, 7000, 4500, 'Active', { gender: 'MALE', addresses: [customerAddress('9 Bode Thomas Street', 'Surulere', 'Lagos')] }),
+    customerRow('mock-cus-s1t2u3', 'Halima Bello', '07031124567', 'halima@example.com', 22000, 2, 0, 0, 'New'),
+    customerRow('mock-cus-v4w5x6', 'Segun Oladipo', '08099001122', 'segun@example.com', 315000, 19, 30000, 0, 'Active', { tier_name: 'Platinum', addresses: [customerAddress('8 Ring Road', 'Ibadan', 'Oyo')] }),
+  ],
+}
+
+/** One sample ledger per customer, as GET customer/transactions/{id}/ answers. */
+export const sampleCustomerTransactions = (customerId: string): UnknownRecord[] => {
+  const seed = customerId.length
+  return [
+    { id: `${customerId}-t1`, type: 'PURCHASE', title: 'Order delivered', reference: `SH-284${seed}1`, amount: 48000, flow: 'OUTFLOW', payment_method: 'TRANSFER', status: 'PAID', attendant: 'Kemi Adeyemi', created_at: daysAgo(2) },
+    { id: `${customerId}-t2`, type: 'WALLET', title: 'Wallet top-up', reference: null, amount: 10000, flow: 'INFLOW', payment_method: 'CASH', status: 'SUCCESSFUL', attendant: 'Kemi Adeyemi', created_at: daysAgo(6) },
+    { id: `${customerId}-t3`, type: 'PURCHASE', title: 'Storefront order', reference: `SH-284${seed}7`, amount: 32500, flow: 'OUTFLOW', payment_method: 'CARD', status: 'PAID', attendant: null, created_at: daysAgo(14) },
+    { id: `${customerId}-t4`, type: 'DEBT', title: 'Debt settlement', reference: `SH-284${seed}0`, amount: 5000, flow: 'INFLOW', payment_method: 'TRANSFER', status: 'SUCCESSFUL', attendant: 'Kemi Adeyemi', created_at: daysAgo(21) },
+    { id: `${customerId}-t5`, type: 'LOYALTY', title: 'Loyalty reward', reference: null, amount: 1500, flow: 'INFLOW', payment_method: null, status: 'SUCCESSFUL', attendant: null, created_at: daysAgo(30) },
+    // Older orders, so the history runs past one page.
+    ...Array.from({ length: 8 }, (_, index) => ({ id: `${customerId}-o${index}`, type: 'PURCHASE', title: 'Order delivered', reference: `SH-27${seed}${index}2`, amount: 12500 + index * 3500, flow: 'OUTFLOW', payment_method: index % 2 ? 'CASH' : 'TRANSFER', status: 'PAID', attendant: 'Kemi Adeyemi', created_at: daysAgo(40 + index * 9) })),
+  ]
 }
 
 export const BUSINESS_CATEGORIES = ['Fashion & accessories', 'Beauty & cosmetics', 'Pharmacy & health', 'Food & grocery', 'Electronics', 'Home & lifestyle', 'Other'] as const

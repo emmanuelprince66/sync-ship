@@ -3,7 +3,7 @@ import { Field } from '@/components/ui/Field'
 import { SelectField } from '@/components/ui/SelectField'
 import { useStoreDetailsForm } from '../hooks/useStoreDetailsForm'
 import { CardActions, SettingsCard } from './SettingsCard'
-import { TextAreaField } from './TextAreaField'
+import { TextAreaField } from '@/components/ui/TextAreaField'
 
 export function StoreDetailsCard({ profile }: { profile: StorefrontProfile }) {
   const form = useStoreDetailsForm(profile)

@@ -2,6 +2,7 @@ import type { CheckoutMethod } from '@/api/types'
 import { Field } from '@/components/ui/Field'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { SelectField } from '@/components/ui/SelectField'
+import { CustomerPickerModal } from '@/features/customers'
 import { cn } from '@/lib/cn'
 import { formatNaira } from '@/lib/format'
 import type { CreateShipmentWizard } from '../../hooks/useCreateShipmentWizard'
@@ -12,7 +13,7 @@ const options: { id: CheckoutMethod; icon: IconName; title: string; text: string
 ]
 
 export function CheckoutMethodStep({ wizard }: { wizard: CreateShipmentWizard }) {
-  const { method, setMethod, register, errors, total, stateOptions, hasStoreLink, pickup, showStoreItemsNote } = wizard
+  const { method, setMethod, register, errors, total, stateOptions, hasStoreLink, pickup, showStoreItemsNote, customerPicker, pickCustomer } = wizard
   return <div>
     <div className="mb-6"><div className="text-lg font-black text-[#0F3124]">Who will complete checkout?</div><div className="mt-1 text-xs text-[#7E8E86]">Choose how you want to confirm the address and delivery payment.</div></div>
     <div className="grid gap-4 md:grid-cols-2" role="radiogroup" aria-label="Checkout method">
@@ -23,7 +24,10 @@ export function CheckoutMethodStep({ wizard }: { wizard: CreateShipmentWizard })
       </button>)}
     </div>
     {method === 'merchant' && <div className="mt-6 rounded-2xl border border-[#DDE7E1] bg-[#FAFCFA] p-5">
-      <div className="mb-4 flex items-center gap-2 text-sm font-extrabold text-[#17382C]"><Icon name="location" size={18}/>Customer delivery details</div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm font-extrabold text-[#17382C]"><Icon name="location" size={18}/>Customer delivery details</div>
+        <button type="button" onClick={customerPicker.open} className="flex items-center gap-1.5 rounded-xl border border-[#DCE7E0] bg-white px-3 py-2 text-xs font-extrabold text-[#286B43] transition hover:border-[#529661]"><Icon name="users" size={16}/>Pick a saved customer</button>
+      </div>
       <div className="grid gap-4 md:grid-cols-2">
         <Field label="Customer name" autoComplete="name" error={errors.customer?.name?.message} {...register('customer.name')}/>
         <Field label="Phone number" type="tel" autoComplete="tel" error={errors.customer?.phone?.message} {...register('customer.phone')}/>
@@ -33,6 +37,7 @@ export function CheckoutMethodStep({ wizard }: { wizard: CreateShipmentWizard })
         <SelectField label="State" options={stateOptions} {...register('customer.state')}/>
       </div>
       <div className="mt-4 flex items-start gap-2 rounded-xl bg-[#EAF5E9] p-3 text-[11px] leading-5 text-[#52705B]"><Icon name="building" size={16}/><span>Pickup address: <strong className="text-[#294C37]">{pickup.full}</strong> — from your business settings.</span></div>
+      <CustomerPickerModal open={customerPicker.isOpen} onClose={customerPicker.close} onPick={pickCustomer}/>
     </div>}
     {method === 'customer' && <div className="mt-6 rounded-2xl bg-[#F0F6EF] p-5">
       <div className="flex items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#438352]"><Icon name="link" size={19}/></div><div><div className="text-xs font-extrabold text-[#234A31]">Your customer checks out on your store</div><div className="mt-1 text-[11px] leading-5 text-[#708276]">They’ll pay {formatNaira(total)} for the products plus the delivery option they choose. The order appears in Shipping &amp; tracking once they pay.</div></div></div>

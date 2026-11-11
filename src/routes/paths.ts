@@ -19,7 +19,11 @@ export const paths = {
   settings: '/settings',
   kyc: '/kyc',
   storefront: '/storefront',
+  customers: '/customers',
 } as const
+
+/** A customer's profile page, e.g. /customers/abc123. */
+export const customerPath = (id: string) => `${paths.customers}/${id}`
 
 /** URL slug for each settings tab, e.g. /settings/payments. */
 export const settingsSlugs: Record<SettingsSection, string> = {

@@ -1,12 +1,12 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import Papa from 'papaparse'
-import { apiRequest, mockDelay } from '@/lib/api-client'
+import { useCallback } from 'react'
+import { ApiError, apiRequest, mockDelay } from '@/lib/api-client'
 import { fetchCurrentBusiness, requireBusinessId, useCurrentBusinessId } from './business'
-import { apiFormRequest, asRecord, at, isLive, listFrom, num, str } from './http'
+import { apiErrorText, apiFormRequest, asRecord, at, isLive, listFrom, num, str } from './http'
 import { db } from './mock-data'
 import { queryClient } from '@/lib/query-client'
 import { queryKeys } from './query-keys'
-import type { CatalogItem, ItemSale } from './types'
+import type { CatalogItem, ItemMedia, ItemSale } from './types'
 
 /**
  * Items = the business's Virtual Products: lightweight catalog items with no stock
@@ -17,11 +17,48 @@ import type { CatalogItem, ItemSale } from './types'
  *  DELETE product/virtual/{business_id}/{id}/
  *  PATCH  business/{business_id}/                { storefront_product_source: 'INVENTORY' | 'VIRTUAL' }
  *  GET    sale/dashboard/{business_id}/          → { top_selling_products: [...] } (sales history)
- * Weights are kilograms. A new picture goes as multipart with an `image` file, the way
- * services and business logos do; every other save stays JSON.
+ *  GET    product/sku/?sku=                      → one catalogue product (name, description, image, selling_price)
+ * Weights are kilograms.
+ *
+ * Pictures (same contract as services): up to 5 per item. New files go as multipart, the
+ * first as `image` (what the backend reads today) and every one as repeated `images`. On
+ * PATCH, saved gallery pictures to keep go as repeated `kept_media_ids`, sent only when the
+ * gallery was changed. Responses carry `media: [{ id, file, type }]`; older rows only have
+ * `image` / `image_url`. A picture known only by URL (SKU lookup) goes as `image_url`.
+ * Saves without picture changes stay JSON.
  */
 
-export type ItemInput = { name: string; description: string; price: string; weight: string; image: string; imageFile?: File | null; available: boolean; listed: boolean }
+export const ITEM_MAX_IMAGES = 5
+export const ITEM_IMAGE_MAX_MB = 10
+export const ITEM_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'] as const
+
+export type ItemInput = {
+  name: string
+  description: string
+  price: string
+  weight: string
+  /** Sample data only: the cover to show. */
+  image: string
+  available: boolean
+  listed: boolean
+  /** New picture files in gallery order. */
+  newImages?: File[]
+  /** A picture known only by its URL (from a SKU lookup), sent as `image_url`. */
+  imageUrl?: string
+  /** Sample data only: every picture to show, in order. */
+  previewUrls?: string[]
+}
+
+/** What changed in an item's pictures when it is edited. */
+export type GalleryChange = {
+  newImages: File[]
+  /** Saved pictures to keep, in order; null when the gallery wasn't touched. */
+  keptMediaIds: string[] | null
+  /** `image_url`: a URL to set, null to clear it, undefined to leave it. */
+  imageUrl?: string | null
+  /** Sample data only: every picture to show, in order. */
+  previewUrls: string[]
+}
 
 // ─── Live mappers/services ──────────────────────────────────────────────────
 
@@ -32,9 +69,17 @@ const numericKey = (id: string) => {
   return Math.abs(hash)
 }
 
+/** Gallery pictures from `media` (type compared case-insensitively: the API sends "image" or "IMAGE"). */
+const mapMedia = (value: unknown): ItemMedia[] => (Array.isArray(value) ? value : [])
+  .map(asRecord)
+  .filter(item => (str(item.type) || 'image').toLowerCase() === 'image')
+  .map(item => ({ id: str(item.id), url: str(item.file) || str(item.url) }))
+  .filter(item => item.id && item.url)
+
 const mapVirtualProduct = (value: unknown): CatalogItem => {
   const product = asRecord(value)
   const productId = str(product.id)
+  const media = mapMedia(product.media)
   return {
     id: numericKey(productId),
     productId,
@@ -42,7 +87,8 @@ const mapVirtualProduct = (value: unknown): CatalogItem => {
     description: str(product.description),
     weight: str(product.weight) || '0',
     price: String(num(product.price)),
-    image: str(product.image) || str(product.image_url),
+    image: media[0]?.url || str(product.image) || str(product.image_url),
+    media,
     inStock: product.availability !== false,
     listed: product.listed_on_storefront !== false,
   }
@@ -55,13 +101,26 @@ const toPayload = (input: ItemInput) => ({
   weight: input.weight || '0',
   availability: input.available,
   listed_on_storefront: input.listed,
+  ...(input.imageUrl ? { image_url: input.imageUrl } : {}),
 })
 
-/** Fields as multipart, adding the picture file. */
-const toFormData = (fields: Record<string, unknown>, imageFile: File) => {
+type PictureFields = { newImages: File[]; keptMediaIds?: string[] | null; imageUrl?: string | null }
+
+/** Multipart is only needed to upload files or to say which saved pictures stay. */
+const needsMultipart = ({ newImages, keptMediaIds }: PictureFields) => newImages.length > 0 || Boolean(keptMediaIds)
+
+/** Fields as multipart with the pictures: `image` (first new file), repeated `images`, repeated `kept_media_ids`. */
+const toFormData = (fields: Record<string, unknown>, { newImages, keptMediaIds, imageUrl }: PictureFields) => {
   const form = new FormData()
   for (const [key, value] of Object.entries(fields)) if (value !== undefined && value !== null) form.append(key, String(value))
-  form.append('image', imageFile)
+  if (newImages[0]) form.append('image', newImages[0])
+  newImages.forEach(file => form.append('images', file))
+  if (keptMediaIds) {
+    keptMediaIds.forEach(id => form.append('kept_media_ids', id))
+    // An empty value says "keep none" (every saved picture was removed).
+    if (keptMediaIds.length === 0) form.append('kept_media_ids', '')
+  }
+  if (imageUrl !== undefined) form.append('image_url', imageUrl ?? '')
   return form
 }
 
@@ -101,8 +160,9 @@ const fetchItemsCached = (businessId: string) =>
 
 const addLiveItem = async (input: ItemInput) => {
   const path = `product/virtual/${requireBusinessId()}/`
-  const response = input.imageFile
-    ? await apiFormRequest<unknown>(path, 'POST', toFormData(toPayload(input), input.imageFile))
+  const pictures = { newImages: input.newImages ?? [] }
+  const response = needsMultipart(pictures)
+    ? await apiFormRequest<unknown>(path, 'POST', toFormData(toPayload(input), pictures))
     : await apiRequest<unknown>(path, { method: 'POST', body: toPayload(input) })
   return mapVirtualProduct(response)
 }
@@ -122,8 +182,14 @@ const getMockItemSales = (): Promise<ItemSale[]> => {
   return mockDelay(rows.filter((row): row is ItemSale => row !== null))
 }
 
+const mockMedia = (urls: string[], prefix: string): ItemMedia[] => urls.map((url, index) => ({ id: `${prefix}-${index}`, url }))
+
+let mockSequence = 0
 const addMockItem = (input: ItemInput) => {
-  const item: CatalogItem = { id: Date.now(), name: input.name, description: input.description, price: input.price || '0', weight: input.weight || '0', image: input.image, inStock: input.available, listed: input.listed }
+  mockSequence += 1
+  const id = Date.now() * 100 + mockSequence
+  const media = mockMedia(input.previewUrls ?? (input.image ? [input.image] : []), `sample-${id}`)
+  const item: CatalogItem = { id, name: input.name, description: input.description, price: input.price || '0', weight: input.weight || '0', image: media[0]?.url ?? '', media, inStock: input.available, listed: input.listed }
   db.items = [...db.items, item]
   return mockDelay(item)
 }
@@ -132,8 +198,8 @@ const addMockItem = (input: ItemInput) => {
 
 const addItem = (input: ItemInput) => (isLive() ? addLiveItem(input) : addMockItem(input))
 
-/** Saves what changed on an item: a quick price or availability change, or the whole edit form. */
-const updateItem = async ({ imageFile, ...item }: CatalogItem & { imageFile?: File | null }) => {
+/** Saves what changed on an item: a quick price or availability change, or the whole edit form (with its pictures). */
+const updateItem = async ({ gallery, ...item }: CatalogItem & { gallery?: GalleryChange }): Promise<CatalogItem> => {
   if (isLive() && item.productId) {
     const fields = {
       name: item.name,
@@ -143,12 +209,16 @@ const updateItem = async ({ imageFile, ...item }: CatalogItem & { imageFile?: Fi
       availability: item.inStock,
       listed_on_storefront: item.listed !== false,
     }
-    if (imageFile) await apiFormRequest<unknown>(`product/virtual/${requireBusinessId()}/${item.productId}/`, 'PATCH', toFormData(fields, imageFile))
-    else await patchLiveItem(item.productId, fields)
-  } else {
-    db.items = db.items.map(current => (current.id === item.id ? item : current))
+    if (gallery && needsMultipart(gallery)) {
+      return mapVirtualProduct(await apiFormRequest<unknown>(`product/virtual/${requireBusinessId()}/${item.productId}/`, 'PATCH', toFormData(fields, gallery)))
+    }
+    await patchLiveItem(item.productId, gallery?.imageUrl !== undefined ? { ...fields, image_url: gallery.imageUrl } : fields)
+    return item
   }
-  return mockDelay(item, isLive() ? 0 : 250)
+  const media = gallery ? mockMedia(gallery.previewUrls, `sample-${item.id}-${Date.now()}`) : item.media
+  const saved = gallery ? { ...item, media, image: media?.[0]?.url ?? '' } : item
+  db.items = db.items.map(current => (current.id === item.id ? saved : current))
+  return mockDelay(saved, 250)
 }
 
 const deleteItem = async (item: CatalogItem) => {
@@ -168,33 +238,123 @@ const increasePrices = async (percentage: number) => {
   return mockDelay(updated, isLive() ? 0 : 450)
 }
 
-type SheetRow = Record<string, string | undefined>
-const pick = (row: SheetRow, ...keys: string[]) => {
-  const entry = Object.entries(row).find(([key]) => keys.some(k => key.trim().toLowerCase().startsWith(k)))
-  return entry?.[1]?.trim() ?? ''
+// ─── SKU / barcode lookup ───────────────────────────────────────────────────
+
+/** A catalogue product found by SKU. `price` is the selling price recorded against it ('' when none). */
+export type SkuProduct = { sku: string; name: string; description: string; price: string; imageUrl: string }
+
+const SAMPLE_SKUS: Record<string, SkuProduct> = {
+  '6154000056789': { sku: '6154000056789', name: 'Peak Full Cream Milk Tin 400g', description: 'Evaporated full cream milk, 400 g tin.', price: '2400', imageUrl: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=80&w=800' },
+  'TOTE-001': { sku: 'TOTE-001', name: 'Canvas tote bag', description: 'Heavy cotton canvas tote with an inner pocket.', price: '12500', imageUrl: 'https://images.unsplash.com/photo-1597633125097-5a9ae3cb8a8f?crop=entropy&cs=tinysrgb&fit=crop&fm=jpg&q=80&w=800' },
 }
 
-/** Parses a CSV with columns: item name, description, weight (kg), selling price, availability. Live: creates each row. */
-const importItems = (file: File) =>
-  new Promise<CatalogItem[]>((resolve, reject) => {
-    Papa.parse<SheetRow>(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async ({ data }) => {
-        try {
-          const rows: ItemInput[] = data
-            .map(row => ({ name: pick(row, 'item name', 'name'), description: pick(row, 'description'), weight: pick(row, 'weight') || '0', price: pick(row, 'selling price', 'price') || '0', image: '', available: !/out|no|false|0|unavailable/i.test(pick(row, 'availability', 'stock')), listed: true }))
-            .filter(row => row.name)
-          const created: CatalogItem[] = []
-          for (const row of rows) created.push(await addItem(row))
-          resolve(created)
-        } catch (error) {
-          reject(error)
-        }
-      },
-      error: reject,
-    })
-  })
+const mapSkuProduct = (value: unknown, sku: string): SkuProduct | null => {
+  const record = asRecord(value)
+  const name = str(record.name).trim()
+  if (!name) return null
+  const media = mapMedia(record.media)
+  const price = num(record.selling_price ?? record.price ?? record.amount)
+  return {
+    sku: str(record.sku) || sku,
+    name,
+    description: str(record.description),
+    price: price > 0 ? String(price) : '',
+    imageUrl: str(record.image) || str(record.image_url) || media[0]?.url || '',
+  }
+}
+
+/** GET product/sku/?sku= → the product recorded against that SKU/barcode, or null when nobody has listed it. */
+export const lookupSku = async (sku: string): Promise<SkuProduct | null> => {
+  const code = sku.trim()
+  if (!code) return null
+  if (!isLive()) return mockDelay(SAMPLE_SKUS[code.toUpperCase()] ?? null, 500)
+  let response: unknown
+  try {
+    response = await apiRequest<unknown>(`product/sku/?sku=${encodeURIComponent(code)}`)
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null
+    throw error
+  }
+  // A flat product (as sink-inventory reads it), or a list / envelope around one.
+  const list = listFrom(response, ['results', 'data', 'results.data'])
+  const data = asRecord(response).data
+  return mapSkuProduct(list.length ? list[0] : data && typeof data === 'object' ? data : response, code)
+}
+
+/**
+ * A remote picture as an uploadable File. Fails soft (null): product images often sit on a
+ * bucket without CORS headers, in which case the URL is kept and sent as `image_url`.
+ */
+export const fetchImageAsFile = async (url: string, name = 'sku-image'): Promise<File | null> => {
+  try {
+    const response = await fetch(url, { mode: 'cors' })
+    if (!response.ok) return null
+    const blob = await response.blob()
+    if (!(ITEM_IMAGE_TYPES as readonly string[]).includes(blob.type) || blob.size > ITEM_IMAGE_MAX_MB * 1024 * 1024) return null
+    return new File([blob], `${name}.${blob.type.split('/')[1] || 'jpg'}`, { type: blob.type })
+  } catch {
+    return null
+  }
+}
+
+export const useSkuLookup = () => useMutation({ mutationFn: lookupSku })
+
+// ─── Import ────────────────────────────────────────────────────────────────
+
+/** One validated sheet row ready to create. `sku`, when given, fills a missing price/description and the picture. */
+export type ImportItemRow = { name: string; description: string; price: string; weight: string; available: boolean; listed: boolean; sku: string }
+export type ImportRowResult = { ok: true } | { ok: false; reason: string }
+
+/** Creates one imported row (one POST each: the backend has no bulk endpoint for virtual products). */
+const importItemRow = async (row: ImportItemRow): Promise<ImportRowResult> => {
+  try {
+    let { description, price } = row
+    let imageUrl = ''
+    if (row.sku) {
+      const found = await lookupSku(row.sku).catch(() => null)
+      if (found) {
+        description ||= found.description
+        price ||= found.price
+        imageUrl = found.imageUrl
+      }
+    }
+    if (!price) return { ok: false, reason: row.sku ? `No selling price in the sheet and none found for SKU ${row.sku}` : 'Selling price is missing' }
+    await addItem({ name: row.name, description, price, weight: row.weight, image: imageUrl, imageUrl: imageUrl || undefined, available: row.available, listed: row.listed })
+    return { ok: true }
+  } catch (error) {
+    return { ok: false, reason: apiErrorText(error, 'The server rejected this row') }
+  }
+}
+
+const IMPORT_CONCURRENCY = 3
+
+/**
+ * Creates imported rows a few at a time, reporting progress, then refreshes the item list
+ * (also after a partial import, so the rows that did go in show up).
+ */
+export const useImportItemRows = () => {
+  const client = useQueryClient()
+  return useCallback(async (rows: ImportItemRow[], onProgress: (done: number) => void) => {
+    const results: ImportRowResult[] = new Array(rows.length)
+    let next = 0
+    let done = 0
+    const worker = async () => {
+      while (next < rows.length) {
+        const index = next
+        next += 1
+        results[index] = await importItemRow(rows[index])
+        done += 1
+        onProgress(done)
+      }
+    }
+    try {
+      await Promise.all(Array.from({ length: Math.min(IMPORT_CONCURRENCY, rows.length) }, worker))
+    } finally {
+      await client.invalidateQueries({ queryKey: queryKeys.items })
+    }
+    return results
+  }, [client])
+}
 
 // ─── Hooks ──────────────────────────────────────────────────────────────────
 
@@ -256,8 +416,8 @@ export const useItemSales = () => {
 }
 
 const useInvalidateItems = () => {
-  const queryClient = useQueryClient()
-  return () => queryClient.invalidateQueries({ queryKey: queryKeys.items })
+  const client = useQueryClient()
+  return () => client.invalidateQueries({ queryKey: queryKeys.items })
 }
 
 export const useAddItem = () => {
@@ -291,7 +451,7 @@ let mockSource: StorefrontSource = 'VIRTUAL'
 /** Which catalog the public storefront serves: inventory products or these items. */
 export const useStorefrontSource = () => {
   const { businessId } = useCurrentBusinessId()
-  const queryClient = useQueryClient()
+  const client = useQueryClient()
   const key = ['storefront-source', isLive() ? businessId : 'mock'] as const
   const query = useQuery({
     queryKey: key,
@@ -308,25 +468,9 @@ export const useStorefrontSource = () => {
       return source
     },
     onSuccess: source => {
-      queryClient.setQueryData(key, source)
-      queryClient.invalidateQueries({ queryKey: queryKeys.business })
+      client.setQueryData(key, source)
+      client.invalidateQueries({ queryKey: queryKeys.business })
     },
   })
   return { source: query.data ?? 'INVENTORY', isLoading: query.isLoading, setSource: mutation.mutate, isSaving: mutation.isPending }
-}
-
-/** Only .csv is parsed for now; .xlsx support needs the `xlsx` package (used in sink-inventory). */
-export const useImportItems = () => {
-  const invalidate = useInvalidateItems()
-  return useMutation({ mutationFn: importItems, onSuccess: invalidate })
-}
-
-export const downloadImportTemplate = () => {
-  const csv = 'Item name,Description,Weight (kg),Selling price,Availability\nClassic leather handbag,Full-grain leather,2.5,48000,Available\n'
-  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = 'syncship-items-template.csv'
-  anchor.click()
-  URL.revokeObjectURL(url)
 }

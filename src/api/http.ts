@@ -62,6 +62,25 @@ export const listFrom = (value: unknown, paths: string[]): unknown[] => {
   return []
 }
 
+/**
+ * A readable reason from an API error, including Django REST field errors
+ * ({ price: ['A valid number is required.'] } → "Price: A valid number is required.").
+ */
+export const apiErrorText = (error: unknown, fallback: string) => {
+  const data = asRecord(error && typeof error === 'object' && 'data' in error ? (error as { data: unknown }).data : null)
+  const fieldErrors = Object.entries(data)
+    .filter(([key]) => !['message', 'error', 'detail', 'status', 'success'].includes(key))
+    .map(([key, value]) => {
+      const text = Array.isArray(value) ? value.map(str).filter(Boolean).join(' ') : str(value)
+      return text ? `${key === 'non_field_errors' ? '' : `${key.charAt(0).toUpperCase()}${key.slice(1).replace(/_/g, ' ')}: `}${text}` : ''
+    })
+    .filter(Boolean)
+  const message = str(data.message) || str(data.error) || str(data.detail)
+  if (fieldErrors.length) return fieldErrors.join(' · ')
+  if (message) return message
+  return error instanceof Error && error.message ? error.message : fallback
+}
+
 /** Reads a nested value by dotted path. */
 export const at = (value: unknown, path: string): unknown =>
   path.split('.').reduce<unknown>((current, key) => asRecord(current)[key], value)

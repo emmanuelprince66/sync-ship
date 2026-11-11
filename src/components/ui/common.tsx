@@ -59,10 +59,14 @@ export function SummaryRow({ label, value, labelClassName = 'text-[#7D8D85]', va
   return <div className="flex justify-between text-xs"><span className={labelClassName}>{label}</span><span className={valueClassName}>{value}</span></div>
 }
 
-/** Image picker wrapper: hidden file input inside a clickable label. */
-export function FilePicker({ accept, onFile, className, children }: { accept: string; onFile: (file: File) => void; className?: string; children: ReactNode }) {
+/** Image picker wrapper: hidden file input inside a clickable label. Pass `onFiles` to allow picking several. */
+export function FilePicker({ accept, onFile, onFiles, className, children, label }: { accept: string; className?: string; children: ReactNode; label?: string } & ({ onFile: (file: File) => void; onFiles?: never } | { onFiles: (files: File[]) => void; onFile?: never })) {
   return <label className={cn('cursor-pointer', className)}>
     {children}
-    <input type="file" accept={accept} className="hidden" onChange={event => { const file = event.target.files?.[0]; if (file) onFile(file); event.target.value = '' }}/>
+    <input type="file" accept={accept} multiple={Boolean(onFiles)} aria-label={label} className="hidden" onChange={event => {
+      const files = Array.from(event.target.files ?? [])
+      if (onFiles) { if (files.length) onFiles(files) } else if (files[0]) onFile?.(files[0])
+      event.target.value = ''
+    }}/>
   </label>
 }

@@ -12,4 +12,5 @@ export const queryKeys = {
   wallet: ['wallet'] as const,
   settings: ['settings'] as const,
   employees: ['employees'] as const,
+  customers: ['customers'] as const,
 }

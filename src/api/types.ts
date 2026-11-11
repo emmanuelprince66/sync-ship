@@ -39,6 +39,9 @@ export type PackageItem = {
   productId?: string
 }
 
+/** One saved gallery picture of an item. */
+export type ItemMedia = { id: string; url: string }
+
 export type CatalogItem = {
   id: number
   name: string
@@ -46,8 +49,10 @@ export type CatalogItem = {
   weight: string
   /** NGN, as string to match form input. */
   price: string
-  /** Empty when the item has no picture yet. */
+  /** Cover picture (first gallery image); empty when the item has no picture yet. */
   image: string
+  /** Saved gallery pictures in order (`media` on the API); empty for items with only the legacy `image`. */
+  media?: ItemMedia[]
   /** Available to order (`availability` on the API). */
   inStock: boolean
   /** Shows on the public storefront (`listed_on_storefront`). */

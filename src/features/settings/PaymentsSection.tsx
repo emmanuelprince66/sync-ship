@@ -4,7 +4,6 @@ import { Icon } from '@/components/ui/Icon'
 import { Skeleton, SkeletonGroup } from '@/components/ui/Skeleton'
 import { Toggle } from '@/components/ui/Toggle'
 import { KycCard } from './components/payments/KycCard'
-import { SettlementAccountsCard } from './components/payments/SettlementAccountsCard'
 import { usePaymentsSection } from './hooks/usePaymentsSection'
 import { SaveBar, SectionHeading } from './shared'
 
@@ -40,7 +39,6 @@ export function PaymentsSection({ initial }: { initial: PaymentSettings }) {
     </div>}
 
     <div className="mt-5"><KycCard kyc={kyc} onOpen={kyc.open}/></div>
-    <div className="mt-5"><SettlementAccountsCard/></div>
 
     <SaveBar saving={saving} onSave={save}/>
   </>

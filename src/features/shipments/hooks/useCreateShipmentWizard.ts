@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { errorMessage } from '@/api/auth'
 import { useSettlementAccounts } from '@/api/banks'
+import type { Customer } from '@/api/customers'
 import { isLive } from '@/api/http'
 import { useAddItem, useItems } from '@/api/items'
 import { useBusinessSettings } from '@/api/settings'
@@ -13,6 +14,7 @@ import { packageTotal, useCreateShipment, useDeliveryPartners, useShipmentRates 
 import type { CatalogItem, CheckoutMethod, CreateShipmentResult, DeliveryPartner, PackageItem } from '@/api/types'
 import type { IconName } from '@/components/ui/Icon'
 import { useClipboard } from '@/hooks/useClipboard'
+import { useDisclosure } from '@/hooks/useDisclosure'
 import { paths, settingsPath } from '@/routes/paths'
 import { NIGERIAN_STATES } from '../constants'
 import { emptyPackageItem, shipmentFormDefaults, shipmentFormSchema, type PackageItemValues, type PaymentMethodValue, type PaymentStatusValue, type ShipmentFormValues } from '../schemas'
@@ -48,6 +50,7 @@ export function useCreateShipmentWizard() {
   const [result, setResult] = useState<CreateShipmentResult | null>(null)
   const [checkoutLink, setCheckoutLink] = useState<string | null>(null)
   const { copied, copy } = useClipboard()
+  const customerPicker = useDisclosure()
 
   const form = useForm<ShipmentFormValues>({ resolver: zodResolver(shipmentFormSchema), defaultValues: shipmentFormDefaults(), mode: 'onTouched' })
   const { control, register, setValue, getValues, trigger, handleSubmit, formState: { errors } } = form
@@ -174,6 +177,8 @@ export function useCreateShipmentWizard() {
   const createLink = () => {
     const link = checkout.buildLink(packageItems)
     if (!link) {
+      // The link hook already explained a store that shows inventory instead of these items.
+      if (checkout.hasStore && !checkout.servesItems) return
       toast.error('Set up your store link first so customers have somewhere to pay.', { action: { label: 'Open settings', onClick: () => navigate(settingsPath('Storefront')) } })
       return
     }
@@ -195,6 +200,14 @@ export function useCreateShipmentWizard() {
       return bookOrder()
     }
     setStep(current => (current + 1) as WizardStep)
+  }
+
+  /** Prefills the delivery details from a saved customer; fields the record doesn't have keep what was typed. */
+  const pickCustomer = (saved: Customer) => {
+    const address = saved.address
+    const state = (NIGERIAN_STATES as readonly string[]).find(item => item.toLowerCase() === address?.state.toLowerCase())
+    const fill = { name: saved.name, phone: saved.phone, email: saved.email, address: address?.address ?? '', city: address?.city ?? '', state: state ?? '' }
+    for (const [key, value] of Object.entries(fill) as [keyof typeof fill, string][]) if (value) setValue(`customer.${key}`, value, { shouldDirty: true, shouldValidate: true })
   }
 
   const close = () => navigate(paths.dashboard)
@@ -252,6 +265,8 @@ export function useCreateShipmentWizard() {
     pickup,
     customer,
     stateOptions: NIGERIAN_STATES,
+    customerPicker,
+    pickCustomer,
     // Delivery rate step
     deliveryMode,
     rates,
