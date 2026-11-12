@@ -10,14 +10,14 @@ import { DeleteCustomerModal } from './components/DeleteCustomerModal'
 import { useCustomerDetailPage } from './hooks/useCustomerDetailPage'
 
 /** Phones: a swipeable row of stat cards, as on the customer list. */
-const statsGrid = 'no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 xl:grid-cols-4'
+const statsGrid = 'no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0'
 const statSlot = 'min-w-[78%] snap-start sm:min-w-0'
 const layoutGrid = 'grid grid-cols-[minmax(0,1fr)] gap-5 xl:grid-cols-[320px_minmax(0,1fr)] xl:items-start'
 
 function DetailSkeleton() {
   return <SkeletonGroup label="Loading customer" className="flex flex-col gap-5">
     <div className="flex items-center gap-4"><Skeleton className="h-14 w-14 rounded-full"/><div className="flex-1 space-y-2"><Skeleton className="h-6 w-48 max-w-full"/><Skeleton className="h-3 w-32"/></div></div>
-    <div className={statsGrid}>{Array.from({ length: 4 }, (_, index) => <div key={index} className={statSlot}><StatCardSkeleton/></div>)}</div>
+    <div className={statsGrid}>{Array.from({ length: 3 }, (_, index) => <div key={index} className={statSlot}><StatCardSkeleton/></div>)}</div>
     <div className={layoutGrid}><CardSkeleton lines={6}/><CardSkeleton lines={5}/></div>
   </SkeletonGroup>
 }

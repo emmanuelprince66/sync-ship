@@ -10,7 +10,7 @@ import { useItemGallery } from './useItemGallery'
 import { useSkuPrefill } from './useSkuPrefill'
 
 const toValues = (item: CatalogItem | null): ItemFormValues => (item
-  ? { name: item.name, description: item.description ?? '', price: item.price, weight: Number(item.weight) ? item.weight : '', available: item.inStock, listed: item.listed !== false }
+  ? { name: item.name, description: item.description ?? '', price: item.price, weight: Number(item.weight) ? item.weight : '', sku: item.sku ?? '', available: item.inStock, listed: item.listed !== false }
   : itemFormDefaults)
 
 /** Add or edit one item, with its picture gallery and (when adding) a SKU lookup that fills it in. */
@@ -24,6 +24,7 @@ export function useItemForm({ open, item, onClose }: { open: boolean; item: Cata
 
   const fillFromSku = async (product: SkuProduct) => {
     const filled = ['name']
+    setValue('sku', product.sku, { shouldDirty: true })
     setValue('name', product.name, { shouldValidate: true, shouldDirty: true })
     if (product.description) { setValue('description', product.description, { shouldDirty: true }); filled.push('description') }
     if (product.price) { setValue('price', product.price, { shouldValidate: true, shouldDirty: true }); filled.push('price') }
@@ -45,14 +46,14 @@ export function useItemForm({ open, item, onClose }: { open: boolean; item: Cata
     const onError = (error: unknown) => toast.error(apiErrorText(error, 'Could not save the item'))
     if (item) {
       updateItem.mutate(
-        { ...item, name: values.name.trim(), description: values.description.trim(), price: values.price, weight: values.weight || '0', inStock: values.available, listed: values.listed, gallery: gallery.toChange(true) },
+        { ...item, name: values.name.trim(), description: values.description.trim(), price: values.price, weight: values.weight || '0', sku: values.sku, inStock: values.available, listed: values.listed, gallery: gallery.toChange(true) },
         { onSuccess: () => { toast.success('Item updated'); onClose() }, onError },
       )
       return
     }
     const pictures = gallery.toChange(false)
     addItem.mutate(
-      { ...values, image: pictures?.previewUrls[0] ?? '', newImages: pictures?.newImages, imageUrl: pictures?.imageUrl ?? undefined, previewUrls: pictures?.previewUrls },
+      { ...values, sku: values.sku || sku.sku.trim(), image: pictures?.previewUrls[0] ?? '', newImages: pictures?.newImages, imageUrl: pictures?.imageUrl ?? undefined, previewUrls: pictures?.previewUrls },
       { onSuccess: created => { toast.success(`${created.name} added to your items`); onClose() }, onError },
     )
   })

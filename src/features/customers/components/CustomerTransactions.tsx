@@ -37,7 +37,7 @@ const columns = [
 export function CustomerTransactions({ model }: { model: CustomerDetailModel['transactions'] }) {
   return <section className="overflow-hidden rounded-2xl border border-[#E2EAE5] bg-white">
     <div className="flex flex-col gap-3 border-b border-[#EBF0ED] p-4 sm:px-5">
-      <div><div className="text-sm font-extrabold text-[#17382C]">History</div><div className="mt-0.5 text-[10px] text-[#899890]">Purchases, wallet top-ups, debt payments and rewards.</div></div>
+      <div><div className="text-sm font-extrabold text-[#17382C]">History</div><div className="mt-0.5 text-[10px] text-[#899890]">Purchases, debt payments and rewards.</div></div>
       <FilterPills label="Filter history by type" value={model.type} options={model.types} onChange={model.setType}/>
     </div>
     <div className={cn('transition-opacity', model.isFetching && 'opacity-60')}>
@@ -49,7 +49,7 @@ export function CustomerTransactions({ model }: { model: CustomerDetailModel['tr
         getRowId={row => row.id}
         emptyState={model.isError
           ? <EmptyState icon="clock" title="We couldn’t load this history" note="Check your connection and try again." action={<Button variant="outline" onClick={model.retry}>Try again</Button>} className="py-4"/>
-          : <EmptyState icon="clock" title="No transactions yet" note="Purchases and wallet movements for this customer will show here." className="py-4"/>}
+          : <EmptyState icon="clock" title="No transactions yet" note="Purchases and payments for this customer will show here." className="py-4"/>}
         renderMobileCard={row => <div className="px-4 py-4">
           <div className="flex items-start justify-between gap-3"><div className="min-w-0 flex-1"><Title row={row}/></div><span className="shrink-0 text-xs font-extrabold text-[#17382C]">{signedAmount(row)}</span></div>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><span className="text-[10px] text-[#91A098]">{formatActivityDate(row.createdAt)}{row.paymentMethod ? ` · ${titleCase(row.paymentMethod)}` : ''}</span><StatusChip value={statusLabel(row.status)}/></div>

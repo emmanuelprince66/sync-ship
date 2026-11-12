@@ -12,7 +12,7 @@ export function useEditPrice(item: CatalogItem | null, onClose: () => void) {
 
   const save = () => {
     if (!item || invalid) return
-    updateItem.mutate({ ...item, price: price.trim() }, {
+    updateItem.mutate({ ...item, price: price.trim(), priceOnly: true }, {
       onSuccess: () => { toast.success('Price updated'); onClose() },
       onError: error => toast.error(errorMessage(error, 'Could not update the price')),
     })

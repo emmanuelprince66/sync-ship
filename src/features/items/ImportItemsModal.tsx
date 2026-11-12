@@ -16,7 +16,7 @@ function PickFile({ flow }: { flow: ImportFlow }) {
   const reading = flow.stage === 'reading'
   return <div className="flex flex-col gap-4">
     <div className="rounded-2xl bg-[#F1F7F1] p-4 text-[11px] leading-5 text-[#60766A]">
-      <strong className="text-[#315A3E]">Columns:</strong> <code>name</code> and <code>selling_price</code> are required. Optional: <code>description</code>, <code>weight</code> (kg), <code>availability</code> and <code>listed_on_storefront</code> (Yes/No, blank = Yes), and <code>sku</code> — a SKU or barcode fills a missing price or description and adds the product’s picture when we find it. Up to {IMPORT_MAX_ROWS} rows.
+      <strong className="text-[#315A3E]">Columns:</strong> <code>name</code> and <code>selling_price</code> are required. Optional: <code>description</code>, <code>weight</code> (kg), <code>availability</code> and <code>listed_on_storefront</code> (Yes/No, blank = Yes), and <code>sku</code> — saved on the item; a SKU or barcode also fills a missing price or description and adds the product’s picture when we find it. Up to {IMPORT_MAX_ROWS} rows.
     </div>
     <FilePicker accept={IMPORT_ACCEPT} onFile={flow.pickFile} className={cn('flex flex-col items-center rounded-2xl border-2 border-dashed border-[#C9D8CF] p-8 text-center transition hover:border-[#529661]', reading && 'pointer-events-none opacity-70')}>
       <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#EAF5E9] text-[#438352]">{reading ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent"/> : <Icon name="download" size={21}/>}</div>

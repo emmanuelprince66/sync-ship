@@ -57,6 +57,8 @@ export type CatalogItem = {
   inStock: boolean
   /** Shows on the public storefront (`listed_on_storefront`). */
   listed?: boolean
+  /** SKU / barcode (`sku` on virtual products). */
+  sku?: string
   description?: string
   /** Live only: backend product UUID (`id` is a stable numeric key for the UI). */
   productId?: string

@@ -15,9 +15,11 @@ type ItemCardProps = {
   onEditPrice: (item: CatalogItem) => void
   onEdit: (item: CatalogItem) => void
   onDelete: (item: CatalogItem) => void
+  /** True while that switch's save is in flight. */
+  isSaving?: (item: CatalogItem, flag: 'available' | 'listed') => boolean
 }
 
-export function ItemCard({ item, onToggleAvailable, onToggleListed, onEditPrice, onEdit, onDelete }: ItemCardProps) {
+export function ItemCard({ item, onToggleAvailable, onToggleListed, onEditPrice, onEdit, onDelete, isSaving }: ItemCardProps) {
   const menu = useDisclosure()
   const menuRef = useRef<HTMLDivElement>(null)
   useDismiss(menuRef, menu.isOpen, menu.close)
@@ -37,13 +39,14 @@ export function ItemCard({ item, onToggleAvailable, onToggleListed, onEditPrice,
     <div className="p-4">
       <button type="button" onClick={() => onEdit(item)} className="block w-full truncate text-left text-xs font-extrabold text-[#28483B] hover:text-[#438352]">{item.name}</button>
       {item.description && <p className="mt-1 truncate text-[10px] text-[#899890]">{item.description}</p>}
+      {item.sku && <p className="mt-1 truncate text-[10px] font-semibold text-[#7C8D85]">SKU {item.sku}</p>}
       <div className="mt-1.5 flex items-center justify-between">
         <span className="text-[10px] font-semibold text-[#829189]">{Number(item.weight) ? `${item.weight} kg` : 'No weight set'}</span>
         <button type="button" onClick={() => onEditPrice(item)} className="flex items-center gap-1 text-xs font-black text-[#17382C] hover:text-[#438352]">{formatNaira(item.price)} <span className="text-[9px]">Edit</span></button>
       </div>
       <div className="mt-4 flex flex-col gap-2.5 border-t border-[#EDF1EF] pt-3">
-        <div className="flex items-center justify-between"><span className="text-[10px] font-bold text-[#718279]">Availability</span><Toggle enabled={item.inStock} onChange={() => onToggleAvailable(item)} label={`${item.name} availability`}/></div>
-        <div className="flex items-center justify-between"><span className="text-[10px] font-bold text-[#718279]">On storefront</span><Toggle enabled={listed} onChange={() => onToggleListed(item)} label={`${item.name} on storefront`}/></div>
+        <div className="flex items-center justify-between"><span className="text-[10px] font-bold text-[#718279]">Availability</span><Toggle enabled={item.inStock} onChange={() => onToggleAvailable(item)} loading={isSaving?.(item, 'available')} label={`${item.name} availability`}/></div>
+        <div className="flex items-center justify-between"><span className="text-[10px] font-bold text-[#718279]">Sell online</span><Toggle enabled={listed} onChange={() => onToggleListed(item)} loading={isSaving?.(item, 'listed')} label={`${item.name} on storefront`}/></div>
       </div>
     </div>
   </div>

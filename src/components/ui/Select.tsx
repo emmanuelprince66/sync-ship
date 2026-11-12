@@ -86,6 +86,20 @@ export function Select({ label, options, value, defaultValue = '', placeholder =
     items[(index + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus()
   }
 
+  /**
+   * Opening focuses the search box, except on touch screens (coarse pointer), where that would
+   * pop the phone keyboard over the list: there, and without search, the selected option gets focus.
+   */
+  const focusOnOpen = (event: Event) => {
+    const touch = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
+    if (showSearch && !touch) return
+    event.preventDefault()
+    const list = listRef.current
+    const target = list?.querySelector<HTMLButtonElement>('[aria-selected="true"]:not(:disabled)') ?? list?.querySelector<HTMLButtonElement>('button:not(:disabled)')
+    target?.focus({ preventScroll: true })
+    target?.scrollIntoView({ block: 'nearest' })
+  }
+
   return <div className={cn('block min-w-0', className)}>
     {label && <label htmlFor={id} className="mb-2 block text-[12px] font-extrabold text-[#34483F]">{label}</label>}
     <input ref={attach} type="hidden" name={name} defaultValue={value === undefined ? defaultValue : undefined} value={value !== undefined ? current : undefined} readOnly={value !== undefined}/>
@@ -98,7 +112,7 @@ export function Select({ label, options, value, defaultValue = '', placeholder =
         </button>
       </Popover.Trigger>
       {/* Not portalled, so it scrolls and stacks correctly inside dialogs. */}
-      <Popover.Content align="start" sideOffset={6} collisionPadding={12} onOpenAutoFocus={event => { if (!showSearch) { event.preventDefault(); listRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"], button:not(:disabled)')?.focus() } }} onKeyDown={moveFocus}
+      <Popover.Content align="start" sideOffset={6} collisionPadding={12} onOpenAutoFocus={focusOnOpen} onKeyDown={moveFocus}
         className="z-[70] w-[var(--radix-popover-trigger-width)] min-w-[180px] overflow-hidden rounded-xl border border-[#E2EAE5] bg-white shadow-[0_18px_44px_rgba(9,38,28,.16)]">
         {showSearch && <div className="flex items-center gap-2 border-b border-[#EDF1EF] px-3 py-2.5 text-[#7C8D85]"><Icon name="search" size={14}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search…" aria-label="Search options" className="w-full min-w-0 bg-transparent text-xs font-semibold text-[#09261C] outline-none placeholder:font-medium placeholder:text-[#9AABA3]"/></div>}
         <div ref={listRef} role="listbox" className="flex max-h-60 flex-col gap-0.5 overflow-y-auto p-1.5">

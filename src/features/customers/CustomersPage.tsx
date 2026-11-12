@@ -12,7 +12,7 @@ import { DeleteCustomerModal } from './components/DeleteCustomerModal'
 import { useCustomersPage } from './hooks/useCustomersPage'
 
 /** Phones: a swipeable row of stat cards (as on Shipping & tracking) instead of four stacked ones. */
-const statsRow = 'no-scrollbar -mx-4 mb-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 xl:grid-cols-4'
+const statsRow = 'no-scrollbar -mx-4 mb-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0'
 const statSlot = 'min-w-[78%] snap-start sm:min-w-0'
 
 export default function CustomersPage() {
@@ -27,13 +27,13 @@ export default function CustomersPage() {
   return <div>
     <PageHeader
       title="Customers"
-      subtitle="Everyone you sell to, with their spend, balances and history."
+      subtitle="Everyone you sell to, with their spend, debts and history."
       actions={<Button icon="plus" onClick={page.openAdd} className="w-full sm:w-auto">Add customer</Button>}
     />
 
     {page.stats
       ? <div className={statsRow}>{page.stats.map(stat => <div key={stat.label} className={statSlot}><StatCard {...stat}/></div>)}</div>
-      : page.isLoading && <SkeletonGroup label="Loading customer stats" className={statsRow}>{Array.from({ length: 4 }, (_, index) => <div key={index} className={statSlot}><StatCardSkeleton/></div>)}</SkeletonGroup>}
+      : page.isLoading && <SkeletonGroup label="Loading customer stats" className={statsRow}>{Array.from({ length: 3 }, (_, index) => <div key={index} className={statSlot}><StatCardSkeleton/></div>)}</SkeletonGroup>}
 
     <div className="rounded-2xl border border-[#E2EAE5] bg-white">
       <div className="flex flex-col gap-3 border-b border-[#EBF0ED] p-4 sm:flex-row sm:items-center">

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { errorMessage } from '@/api/auth'
-import { useItems, useItemSales, useItemsPage as useItemsPageQuery, useStorefrontSource, useUpdateItem, type StorefrontSource } from '@/api/items'
+import { useItems, useItemSales, useItemsPage as useItemsPageQuery, useSetItemFlags, useStorefrontSource, type StorefrontSource } from '@/api/items'
 import { useBusinessSettings } from '@/api/settings'
 import { useShipmentStats } from '@/api/shipments'
 import type { CatalogItem } from '@/api/types'
@@ -34,7 +34,6 @@ export function useItemsPage() {
   const { data: sales = [] } = useItemSales()
   const { data: settings } = useBusinessSettings()
   const { data: stats } = useShipmentStats()
-  const updateItem = useUpdateItem()
   const [tab, setTab] = useState<ItemsTab>('inventory')
   const [search, setSearchState] = useState('')
   // Item list pages on the server like sink-inventory (page + rows per page + search).
@@ -61,12 +60,45 @@ export function useItemsPage() {
   const query = search.trim().toLowerCase()
   const matches = (name: string) => !query || name.toLowerCase().includes(query)
 
-  const toggleAvailable = (item: CatalogItem) => updateItem.mutate({ ...item, inStock: !item.inStock }, {
+  const setFlags = useSetItemFlags()
+  /** Which switches are saving right now, as "itemId:flag", so each one can show its own spinner. */
+  const [savingFlags, setSavingFlags] = useState<ReadonlySet<string>>(() => new Set())
+  const markSaving = (key: string, on: boolean) => setSavingFlags(current => {
+    const next = new Set(current)
+    if (on) next.add(key)
+    else next.delete(key)
+    return next
+  })
+  const toggleAvailable = (item: CatalogItem) => {
+    const key = `${item.id}:available`
+    if (savingFlags.has(key)) return
+    markSaving(key, true)
+    setFlags.mutate({ item, flags: { available: !item.inStock } }, {
+    onSettled: () => markSaving(key, false),
+    onSuccess: saved => toast.success(saved.inStock ? `${saved.name} is available again` : `${saved.name} is now unavailable`),
     onError: error => toast.error(errorMessage(error, 'Could not update availability')),
   })
-  const toggleListed = (item: CatalogItem) => updateItem.mutate({ ...item, listed: item.listed === false }, {
+  }
+  const toggleListed = (item: CatalogItem) => {
+    const key = `${item.id}:listed`
+    if (savingFlags.has(key)) return
+    markSaving(key, true)
+    setFlags.mutate({ item, flags: { listed: item.listed === false } }, {
+    onSettled: () => markSaving(key, false),
+    onSuccess: saved => {
+      if (saved.listed === false) return toast.success(`${saved.name} is hidden from your storefront`)
+      // Listed items only show online when the store serves these items rather than inventory.
+      if (storefront.source !== 'VIRTUAL') {
+        return toast.info(`${saved.name} is listed, but your storefront currently shows your inventory.`, {
+          description: 'Switch “Store shows” to These items so customers can buy it online.',
+          action: { label: 'Show these items', onClick: () => changeSource('VIRTUAL') },
+        })
+      }
+      toast.success(`${saved.name} is on your storefront`)
+    },
     onError: error => toast.error(errorMessage(error, 'Could not update the storefront listing')),
   })
+  }
   const changeSource = (source: StorefrontSource) => {
     if (source === storefront.source) return
     storefront.setSource(source, {
@@ -91,6 +123,7 @@ export function useItemsPage() {
     storeUrl: settings?.storeUrl ?? '',
     toggleAvailable,
     toggleListed,
+    isSaving: (item: CatalogItem, flag: 'available' | 'listed') => savingFlags.has(`${item.id}:${flag}`),
     filter,
     setFilter: (value: ItemFilter) => { setFilterState(value); setPage(1) },
     isFiltered: Boolean(debouncedSearch) || filter !== 'all',

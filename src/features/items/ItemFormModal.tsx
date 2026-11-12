@@ -32,10 +32,11 @@ export function ItemFormModal({ open, item, onClose }: { open: boolean; item: Ca
             <Field label="Weight" type="number" placeholder="0.0" suffix="kg" step="any" min="0" error={form.errors.weight?.message} {...form.register('weight')}/>
           </div>
           <p className="-mt-2 text-[11px] leading-4 text-[#7C8D85]">Weight is used to calculate delivery rates. Left blank, your default package weight is used.</p>
+          <Field label="SKU (optional)" placeholder="Your SKU or the barcode number" autoComplete="off" error={form.errors.sku?.message} {...form.register('sku')}/>
           <ItemGalleryField gallery={form.gallery}/>
           <div className="flex flex-col gap-2.5">
             <SwitchRow title="Available" detail="Can be added to shipments and ordered." enabled={form.available} onChange={form.setAvailable}/>
-            <SwitchRow title="Listed on storefront" detail="Shows on your public store when it serves these items." enabled={form.listed} onChange={form.setListed}/>
+            <SwitchRow title="Sell online" detail="Listed on your storefront, so customers can buy it there." enabled={form.listed} onChange={form.setListed}/>
           </div>
         </div>
       </div>

@@ -33,7 +33,6 @@ export function useCustomersPage() {
     ? [
         { label: 'Customers', value: summary.count.toLocaleString(), icon: 'users', color: '#438352' },
         { label: 'Total spend', value: formatNaira(summary.totalSpend), icon: 'chart', color: '#3664E8' },
-        { label: 'Wallet balances', value: formatNaira(summary.totalWallet), icon: 'wallet', color: '#286B43' },
         { label: 'Outstanding debt', value: formatNaira(summary.totalDebt), icon: 'card', color: '#C2483D' },
       ]
     : null

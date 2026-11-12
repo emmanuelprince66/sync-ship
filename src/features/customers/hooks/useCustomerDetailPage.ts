@@ -44,7 +44,6 @@ export function useCustomerDetailPage() {
       ? ([
           { label: `Total spend · ${data.totalOrders} order${data.totalOrders === 1 ? '' : 's'}`, value: formatNaira(data.totalSpend), icon: 'chart', color: '#3664E8' },
           { label: 'Average order', value: formatNaira(data.averageBasket), icon: 'box', color: '#438352' },
-          { label: 'Wallet balance', value: formatNaira(data.walletBalance), icon: 'wallet', color: '#286B43' },
           { label: data.outstandingBalance > 0 ? 'Outstanding · owed to you' : 'Outstanding', value: formatNaira(data.outstandingBalance), icon: 'card', color: '#C2483D' },
         ] satisfies { label: string; value: string; icon: IconName; color: string }[])
       : [],

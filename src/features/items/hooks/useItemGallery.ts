@@ -11,7 +11,8 @@ export type GalleryTile = { key: string; url: string; mediaId?: string; file?: F
 
 const initialTiles = (item: CatalogItem | null): GalleryTile[] => {
   if (!item) return []
-  if (item.media?.length) return item.media.map(media => ({ key: media.id, url: media.url, mediaId: media.id }))
+  // A media entry without an id is an older item's single picture (the legacy image).
+  if (item.media?.length) return item.media.map((media, index) => (media.id ? { key: media.id, url: media.url, mediaId: media.id } : { key: `legacy-${index}`, url: media.url, legacy: true }))
   return item.image ? [{ key: 'legacy', url: item.image, legacy: true }] : []
 }
 
@@ -73,12 +74,19 @@ export function useItemGallery() {
   const hadLegacy = initial.some(tile => tile.legacy)
   const keepsLegacy = tiles.some(tile => tile.legacy)
 
-  /** What to send on save. For a new item kept_media_ids never applies. */
+  /**
+   * What to send on save. kept_media_ids is sent only when a saved picture was removed or
+   * reordered (omitted = keep everything), so adding pictures never clears the legacy image.
+   * Removing the legacy image sends the remaining saved ids (empty = clear). New items never send it.
+   */
   const toChange = (isEdit: boolean): GalleryChange | undefined => {
     if (isEdit && !touched) return undefined
+    const savedBefore = initial.flatMap(tile => (tile.mediaId ? [tile.mediaId] : []))
+    const savedNow = tiles.flatMap(tile => (tile.mediaId ? [tile.mediaId] : []))
+    const savedChanged = savedBefore.join('|') !== savedNow.join('|') || (hadLegacy && !keepsLegacy)
     return {
       newImages: tiles.flatMap(tile => (tile.file ? [tile.file] : [])),
-      keptMediaIds: isEdit ? tiles.flatMap(tile => (tile.mediaId ? [tile.mediaId] : [])) : null,
+      keptMediaIds: isEdit && savedChanged ? savedNow : null,
       // A URL picture is set; a removed older single picture is cleared.
       imageUrl: remote?.remoteUrl ?? (isEdit && hadLegacy && !keepsLegacy ? null : undefined),
       previewUrls: tiles.map(tile => tile.url),
