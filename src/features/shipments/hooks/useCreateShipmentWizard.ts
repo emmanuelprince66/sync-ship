@@ -243,10 +243,11 @@ export function useCreateShipmentWizard() {
   const shareText = checkoutLink ? checkoutMessage(checkout.storeName, packageItems, checkoutLink) : ''
   const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
+  const needsStoreSwitch = live && !isMerchant && checkout.hasStore && !checkout.isLoading && !checkout.servesItems
   const canContinue =
     step === 1 ? products.length > 0 && products.every(item => item.name && Number(item.quantity) >= 1)
       : step === 3 ? (!isMerchant || (Boolean(partner) && !ratesLoading))
-        : step === 4 && !isMerchant ? !checkout.isLoading
+        : step === 4 && !isMerchant ? !checkout.isLoading && !needsStoreSwitch
           : true
 
   const primaryIcon: IconName = step === 4 ? (isMerchant ? 'truck' : 'link') : 'arrow'
@@ -316,6 +317,14 @@ export function useCreateShipmentWizard() {
     method,
     setMethod: (value: CheckoutMethod) => setValue('method', value, { shouldDirty: true }),
     hasStoreLink: !live || checkout.hasStore,
+    /** The store serves inventory products, so a checkout link for these items wouldn't work until it's switched. */
+    storeSource: {
+      needsSwitch: needsStoreSwitch,
+      canSwitch: canManageItems,
+      switching: checkout.switchingSource,
+      switchToItems: checkout.showTheseItems,
+      openItemsPage: () => navigate(paths.items),
+    },
     showStoreItemsNote: hasItemsNotOnStore,
     pickup,
     customer,

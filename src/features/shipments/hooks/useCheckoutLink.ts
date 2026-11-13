@@ -24,20 +24,14 @@ export function useCheckoutLink() {
   const servesItems = storefront.source === 'VIRTUAL'
 
   const showTheseItems = () => storefront.setSource('VIRTUAL', {
-    onSuccess: () => toast.success('Your storefront now shows these items. Create the checkout link again.'),
+    onSuccess: () => toast.success('Your storefront now shows these items.'),
     onError: error => toast.error(apiErrorText(error, 'Could not change what your storefront shows')),
   })
 
   const buildLink = (products: PackageItem[]) => {
     if (!profile || !hasStore) return null
-    if (!servesItems) {
-      toast.error('Your storefront shows your inventory, not these items, so customers couldn’t check out with this link.', {
-        id: 'checkout-link-source',
-        description: 'Switch “Store shows” to These items, then create the link again.',
-        action: { label: 'Show these items', onClick: showTheseItems },
-      })
-      return null
-    }
+    // Explained on the page (StoreSourceNotice); no link until the store serves these items.
+    if (!servesItems) return null
     const base = getStoreUrl(profile, 'OUTSTORE')
     const quantities = new Map<string, number>()
     for (const product of products) {
@@ -56,6 +50,9 @@ export function useCheckoutLink() {
     hasStore,
     /** False when the storefront serves inventory products, so these items can't be bought there. */
     servesItems,
+    /** Switches "Store shows" to These items (storefront_product_source = VIRTUAL). */
+    showTheseItems,
+    switchingSource: storefront.isSaving,
     isLoading: profileQuery.isLoading || storefront.isLoading,
     storeName: profile?.name ?? '',
   }

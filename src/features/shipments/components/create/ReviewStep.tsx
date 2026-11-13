@@ -3,6 +3,7 @@ import { Icon } from '@/components/ui/Icon'
 import { OptionSelect } from '@/components/ui/OptionSelect'
 import { cn } from '@/lib/cn'
 import { formatNaira } from '@/lib/format'
+import { StoreSourceNotice } from './StoreSourceNotice'
 import { PAYMENT_METHOD_OPTIONS, PAYMENT_STATUS_OPTIONS, type CreateShipmentWizard } from '../../hooks/useCreateShipmentWizard'
 
 function SummaryLine({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
@@ -35,6 +36,7 @@ export function ReviewStep({ wizard }: { wizard: CreateShipmentWizard }) {
   const { isMerchant, products, customer, partner, total, deliveryFee, orderTotal, amountPaid, balance, payment, needsShippingDate, register, errors, goToStep } = wizard
   return <div>
     <div className="mb-6"><div className="text-lg font-black text-[#0F3124]">Review your {isMerchant ? 'order' : 'checkout link'}</div><div className="mt-1 text-xs text-[#7E8E86]">Confirm the details before {isMerchant ? 'creating the order' : 'creating the checkout link'}.</div></div>
+    <StoreSourceNotice wizard={wizard} className="mb-5"/>
     <div className="grid gap-5 md:grid-cols-[1fr_300px]">
       <div className="min-w-0 space-y-4">
         <div className="rounded-2xl border border-[#E0E8E3] p-5"><div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-2 text-xs font-extrabold text-[#17382C]"><Icon name="box" size={17}/>Package details</div><button type="button" onClick={() => goToStep(1)} className="text-[10px] font-extrabold text-[#4A8C58]">Edit</button></div>{products.map((item, index) => <div key={index} className="flex justify-between gap-3 border-t border-[#EDF1EF] py-3 first:border-0"><div className="min-w-0"><div className="truncate text-xs font-bold text-[#34483F]">{item.name}</div><div className="mt-1 text-[10px] text-[#8B9A93]">{item.quantity} × {formatNaira(item.amount)} · {Number(item.weight) > 0 ? `${item.weight} kg each` : 'Default package weight'}</div></div><div className="shrink-0 text-xs font-extrabold text-[#28483B]">{formatNaira((Number(item.amount) || 0) * (Number(item.quantity) || 1))}</div></div>)}</div>
