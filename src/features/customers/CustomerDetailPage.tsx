@@ -41,10 +41,10 @@ export default function CustomerDetailPage() {
               <div className="mt-1 truncate text-xs text-[#7C8D85]">{page.subtitle}</div>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:flex">
-            <Button variant="outline" icon="trash" onClick={page.confirmDelete.open}>Delete</Button>
-            <Button icon="edit" onClick={page.edit.open}>Edit</Button>
-          </div>
+          {(page.can.edit || page.can.delete) && <div className="grid grid-cols-2 gap-2 sm:flex">
+            {page.can.delete && <Button variant="outline" icon="trash" onClick={page.confirmDelete.open}>Delete</Button>}
+            {page.can.edit && <Button icon="edit" onClick={page.edit.open}>Edit</Button>}
+          </div>}
         </div>
 
         <div className={statsGrid}>{page.stats.map(stat => <div key={stat.label} className={statSlot}><StatCard {...stat}/></div>)}</div>
@@ -60,7 +60,7 @@ export default function CustomerDetailPage() {
             <section className="rounded-2xl border border-[#E2EAE5] bg-white p-5">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-sm font-extrabold text-[#17382C]"><Icon name="note" size={17}/>Notes</div>
-                <button type="button" onClick={page.edit.open} className="text-xs font-extrabold text-[#438352]">{page.notes ? 'Edit' : 'Add'}</button>
+                {page.can.edit && <button type="button" onClick={page.edit.open} className="text-xs font-extrabold text-[#438352]">{page.notes ? 'Edit' : 'Add'}</button>}
               </div>
               {page.notes
                 ? <p className="mt-3 whitespace-pre-line text-xs font-medium leading-5 text-[#34483F] [overflow-wrap:anywhere]">{page.notes}</p>

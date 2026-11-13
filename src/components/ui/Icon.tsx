@@ -6,7 +6,7 @@ export type IconName =
   | 'link' | 'user' | 'card' | 'check' | 'copy' | 'clock' | 'download' | 'more'
   | 'logout' | 'building' | 'bank' | 'shield' | 'close' | 'filter' | 'route'
   | 'eye' | 'eyeOff' | 'menu' | 'send' | 'arrowIn' | 'arrowOut'
-  | 'users' | 'edit' | 'note'
+  | 'users' | 'edit' | 'note' | 'minus'
 
 /** The design's stroke icon set (24px grid, currentColor). */
 export function Icon({ name, size = 20, stroke = 1.8 }: { name: IconName; size?: number; stroke?: number }) {
@@ -21,6 +21,7 @@ export function Icon({ name, size = 20, stroke = 1.8 }: { name: IconName; size?:
     bell: <><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></>,
     search: <><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></>,
     plus: <path d="M12 5v14M5 12h14"/>,
+    minus: <path d="M5 12h14"/>,
     arrow: <path d="m9 18 6-6-6-6"/>,
     chevron: <path d="m9 10 3 3 3-3"/>,
     location: <><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></>,

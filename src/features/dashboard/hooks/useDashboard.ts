@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router'
 import { useShipments, useShipmentStats } from '@/api/shipments'
 import { useWallet } from '@/api/wallet'
+import { usePermissions } from '@/hooks/usePermissions'
 import { formatNaira } from '@/lib/format'
 import { paths, settingsPath } from '@/routes/paths'
 import { useShipmentDrawer } from '@/features/shipments/hooks/useShipmentDrawer'
@@ -10,7 +11,8 @@ export function useDashboard() {
   const navigate = useNavigate()
   const shipmentsQuery = useShipments()
   const { data: stats, isLoading: statsLoading } = useShipmentStats()
-  const { data: wallet, isLoading: walletLoading } = useWallet()
+  const permissions = usePermissions()
+  const { data: wallet, isLoading: walletLoading } = useWallet({ enabled: permissions.canManageWallet })
   const drawer = useShipmentDrawer()
   const setup = useSetupProgress()
   const nextStep = setup.steps.find(step => !step.done)
@@ -33,6 +35,12 @@ export function useDashboard() {
     walletBalance: wallet ? formatNaira(Math.floor(wallet.balance)) : '₦0',
     walletKobo: wallet ? `.${String(Math.round((wallet.balance % 1) * 100)).padStart(2, '0')}` : '.00',
     drawer,
+    /** Attendants see neither the balance card nor the business setup card. */
+    showWallet: permissions.canManageWallet,
+    showSetup: permissions.canManageSetup,
+    canTransfer: permissions.canTransfer,
+    canCreateShipments: permissions.canCreateShipments,
+    canViewShipments: permissions.canViewShipments,
     createShipment: () => navigate(paths.createShipment),
     viewShipments: () => navigate(paths.shipments),
     withdraw: () => navigate(paths.withdraw),

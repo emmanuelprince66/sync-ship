@@ -15,13 +15,24 @@ function SwitchRow({ title, detail, enabled, onChange }: { title: string; detail
   </div>
 }
 
+type ItemFormModalProps = {
+  open: boolean
+  item: CatalogItem | null
+  onClose: () => void
+  /** Called with the saved item before the modal closes. */
+  onSaved?: (item: CatalogItem) => void
+  /** Overrides the "Add an item" description (e.g. "It's added to this package too"). */
+  addDescription?: string
+}
+
 /** Create or edit an item. On phones it fills the screen with a fixed save bar. */
-export function ItemFormModal({ open, item, onClose }: { open: boolean; item: CatalogItem | null; onClose: () => void }) {
-  const form = useItemForm({ open, item, onClose })
+export function ItemFormModal({ open, item, onClose, onSaved, addDescription }: ItemFormModalProps) {
+  const form = useItemForm({ open, item, onClose, onSaved })
 
   return <Modal open={open} onClose={onClose} overlayClassName="bg-[#09261C]/40 p-0 backdrop-blur-[2px] sm:p-4" panelClassName="flex h-[100dvh] w-full flex-col bg-white shadow-[0_25px_80px_rgba(9,38,28,.2)] sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:max-w-xl sm:rounded-3xl">
-    <ModalHeader title={form.isEdit ? 'Edit item' : 'Add an item'} description={form.isEdit ? 'Changes apply to new shipments and your storefront.' : 'Save it to your item list and storefront.'} onClose={onClose} className="shrink-0 border-b border-[#EDF1EF] px-5 py-4 sm:px-6"/>
-    <form onSubmit={form.onSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
+    <ModalHeader title={form.isEdit ? 'Edit item' : 'Add an item'} description={form.isEdit ? 'Changes apply to new shipments and your storefront.' : addDescription ?? 'Save it to your item list and storefront.'} onClose={onClose} className="shrink-0 border-b border-[#EDF1EF] px-5 py-4 sm:px-6"/>
+    {/* Stops the submit here: the modal can sit inside another form (the shipment wizard) through its portal. */}
+    <form onSubmit={event => { event.stopPropagation(); void form.onSubmit(event) }} noValidate className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
         <div className="flex flex-col gap-4">
           {!form.isEdit && <SkuLookupField sku={form.sku}/>}
@@ -31,7 +42,7 @@ export function ItemFormModal({ open, item, onClose }: { open: boolean; item: Ca
             <Field label="Selling price" type="number" placeholder="0.00" suffix="NGN" step="any" min="0" error={form.errors.price?.message} {...form.register('price')}/>
             <Field label="Weight" type="number" placeholder="0.0" suffix="kg" step="any" min="0" error={form.errors.weight?.message} {...form.register('weight')}/>
           </div>
-          <p className="-mt-2 text-[11px] leading-4 text-[#7C8D85]">Weight is used to calculate delivery rates. Left blank, your default package weight is used.</p>
+          <p className="-mt-2 text-[11px] leading-4 text-[#7C8D85]">{form.usesDefaultWeight ? <><strong className="font-extrabold text-[#4D7656]">Uses your default package weight</strong> for delivery rates. Add a weight for a more accurate rate.</> : 'Weight is used to calculate delivery rates.'}</p>
           <Field label="SKU (optional)" placeholder="Your SKU or the barcode number" autoComplete="off" error={form.errors.sku?.message} {...form.register('sku')}/>
           <ItemGalleryField gallery={form.gallery}/>
           <div className="flex flex-col gap-2.5">

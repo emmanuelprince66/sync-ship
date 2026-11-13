@@ -10,9 +10,9 @@ import { useShipmentsPage } from './hooks/useShipmentsPage'
 import { STATUS_FILTER_OPTIONS, PAYMENT_FILTER_OPTIONS } from './utils'
 
 export default function ShipmentsPage({ tracking = false }: { tracking?: boolean }) {
-  const { title, subtitle, isLoading, statCards, statsLoading, filters, payment, setPayment, drawer, statusRef, focusStatusFilter, exportCsv, createShipment, pagination } = useShipmentsPage(tracking)
+  const { title, subtitle, isLoading, statCards, statsLoading, filters, payment, setPayment, drawer, statusRef, focusStatusFilter, exportCsv, createShipment, canCreateShipments, pagination } = useShipmentsPage(tracking)
   return <div>
-    <PageHeader title={title} subtitle={subtitle} actions={<div className="flex gap-2"><Button variant="outline" icon="download" onClick={exportCsv}>Export CSV</Button><Button icon="plus" onClick={createShipment}>Create shipment</Button></div>}/>
+    <PageHeader title={title} subtitle={subtitle} actions={<div className="flex gap-2"><Button variant="outline" icon="download" onClick={exportCsv}>Export CSV</Button>{canCreateShipments && <Button icon="plus" onClick={createShipment}>Create shipment</Button>}</div>}/>
     {/* Phones: swipeable row of stat cards instead of three tall stacked cards. */}
     <div className="no-scrollbar -mx-4 mb-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0">{statsLoading
       ? Array.from({ length: 3 }, (_, index) => <div key={index} className="min-w-[78%] snap-start sm:min-w-0"><StatCardSkeleton/></div>)

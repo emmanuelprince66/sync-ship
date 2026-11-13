@@ -15,9 +15,10 @@ import type { CatalogItem, CheckoutMethod, CreateShipmentResult, DeliveryPartner
 import type { IconName } from '@/components/ui/Icon'
 import { useClipboard } from '@/hooks/useClipboard'
 import { useDisclosure } from '@/hooks/useDisclosure'
+import { usePermissions } from '@/hooks/usePermissions'
 import { paths, settingsPath } from '@/routes/paths'
 import { NIGERIAN_STATES } from '../constants'
-import { emptyPackageItem, shipmentFormDefaults, shipmentFormSchema, type PackageItemValues, type PaymentMethodValue, type PaymentStatusValue, type ShipmentFormValues } from '../schemas'
+import { emptyPackageItem, MAX_ITEM_QUANTITY, shipmentFormDefaults, shipmentFormSchema, type PackageItemValues, type PaymentMethodValue, type PaymentStatusValue, type ShipmentFormValues } from '../schemas'
 import { shortAddress } from '../utils'
 import { checkoutMessage, useCheckoutLink } from './useCheckoutLink'
 
@@ -29,6 +30,13 @@ export type WizardStep = 1 | 2 | 3 | 4 | 5
 export type DeliveryMode = 'shipbubble' | 'inhouse' | 'mock'
 
 const toPackageItems = (products: PackageItemValues[]): PackageItem[] => products.map((product, index) => ({ id: index + 1, ...product }))
+
+/** A saved item as a package line; a 0 weight stays blank so the default package weight applies. */
+const lineFromCatalog = (item: CatalogItem, quantity: number): PackageItemValues => ({ name: item.name, quantity: String(quantity), amount: item.price, weight: Number(item.weight) > 0 ? item.weight : '', productId: item.productId, catalogId: item.id })
+
+/** The package line that came from this saved item, if any. */
+const lineIndexFor = (products: PackageItemValues[], item: CatalogItem) =>
+  products.findIndex(line => (line.catalogId !== undefined && line.catalogId === item.id) || (Boolean(item.productId) && line.productId === item.productId))
 
 const INHOUSE_COLORS = ['#286B43', '#3664E8', '#752DA8', '#D38A25', '#2A8C8C', '#E84855']
 
@@ -55,8 +63,13 @@ export function useCreateShipmentWizard() {
   const form = useForm<ShipmentFormValues>({ resolver: zodResolver(shipmentFormSchema), defaultValues: shipmentFormDefaults(), mode: 'onTouched' })
   const { control, register, setValue, getValues, trigger, handleSubmit, formState: { errors } } = form
   const { fields, append, remove, update } = useFieldArray({ control, name: 'products' })
-  /** Right-side panel for adding/editing one package item (null index = new item). */
-  const [itemPanel, setItemPanel] = useState<{ open: boolean; index: number | null }>({ open: false, index: null })
+  const { canManageItems } = usePermissions()
+  /** "Add items" modal: pick saved items, or create a new one. */
+  const itemPicker = useDisclosure()
+  /** The real Add item form, opened from the picker; the saved item joins the package. */
+  const newItemForm = useDisclosure()
+  /** Package line being edited (name, value, weight, quantity), or null. */
+  const [editIndex, setEditIndex] = useState<number | null>(null)
   const [products, method, customer, partnerId, payment] = useWatch({ control, name: ['products', 'method', 'customer', 'partnerId', 'payment'] })
 
   const itemsQuery = useItems()
@@ -94,8 +107,22 @@ export function useCreateShipmentWizard() {
   const orderTotal = total + deliveryFee
   const amountPaid = payment.status === 'PAID' ? orderTotal : payment.status === 'PARTIAL' ? Number(payment.amountPaid) || 0 : 0
 
-  /** Checkout links open the storefront, so every item has to be listed there. */
-  const hasItemsNotOnStore = live && products.some(item => !item.productId || (itemsQuery.data ?? []).find(saved => saved.productId === item.productId)?.listed === false)
+  /** Checkout links open the storefront, which only serves available items listed on it. */
+  const hasItemsNotOnStore = live && products.some(item => {
+    const saved = item.productId ? (itemsQuery.data ?? []).find(entry => entry.productId === item.productId) : undefined
+    return !item.productId || saved?.listed === false || saved?.inStock === false
+  })
+
+  /** Adds a saved item; one already in the package gets more of it instead of a second line. */
+  const addFromCatalog = (item: CatalogItem, quantity = 1) => {
+    const current = getValues('products')
+    const index = lineIndexFor(current, item)
+    if (index === -1) return append(lineFromCatalog(item, Math.min(quantity, MAX_ITEM_QUANTITY)))
+    const next = Math.min((Number(current[index].quantity) || 1) + quantity, MAX_ITEM_QUANTITY)
+    setValue(`products.${index}.quantity`, String(next), { shouldDirty: true, shouldValidate: true })
+  }
+  const setQuantity = (index: number, quantity: number) =>
+    setValue(`products.${index}.quantity`, String(Math.min(Math.max(Math.floor(quantity), 1), MAX_ITEM_QUANTITY)), { shouldDirty: true, shouldValidate: true })
 
   /** Live orders need saved products: typed items become products that stay off the storefront, reusing an identical one if it exists. */
   const saveTypedItems = async () => {
@@ -217,7 +244,7 @@ export function useCreateShipmentWizard() {
   const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
 
   const canContinue =
-    step === 1 ? products.length > 0 && products.every(item => item.name && item.weight)
+    step === 1 ? products.length > 0 && products.every(item => item.name && Number(item.quantity) >= 1)
       : step === 3 ? (!isMerchant || (Boolean(partner) && !ratesLoading))
         : step === 4 && !isMerchant ? !checkout.isLoading
           : true
@@ -236,27 +263,55 @@ export function useCreateShipmentWizard() {
     fields,
     products,
     catalog: (itemsQuery.data ?? []).filter(item => item.inStock),
+    /** Every saved item for the picker; unavailable ones show but can't be added. */
+    allItems: itemsQuery.data ?? [],
     catalogLoading: itemsQuery.isLoading,
-    addProduct: () => setItemPanel({ open: true, index: null }),
-    editProduct: (index: number) => setItemPanel({ open: true, index }),
-    itemPanel: {
-      open: itemPanel.open,
-      isEdit: itemPanel.index !== null,
-      initial: itemPanel.index !== null ? products[itemPanel.index] ?? emptyPackageItem() : emptyPackageItem(),
-      close: () => setItemPanel(current => ({ ...current, open: false })),
+    catalogError: itemsQuery.isError,
+    retryCatalog: () => itemsQuery.refetch(),
+    itemPicker,
+    addProduct: itemPicker.open,
+    addFromCatalog,
+    /** How many of this saved item the package already has (0 = none). */
+    quantityInPackage: (item: CatalogItem) => {
+      const index = lineIndexFor(products, item)
+      return index === -1 ? 0 : Number(products[index].quantity) || 1
+    },
+    setQuantity,
+    maxQuantity: MAX_ITEM_QUANTITY,
+    /** Attendants pick saved items and set quantities; creating items and editing lines is for super admins. */
+    canCreateItems: canManageItems,
+    canEditLines: canManageItems,
+    newItemForm,
+    openNewItem: () => { itemPicker.close(); newItemForm.open() },
+    /** A just-created item goes straight into the package. */
+    addCreatedItem: (item: CatalogItem) => { addFromCatalog(item, 1); toast.success(`${item.name} added to this package`) },
+    editProduct: (index: number) => setEditIndex(index),
+    lineEditor: {
+      open: editIndex !== null,
+      initial: editIndex !== null ? products[editIndex] ?? emptyPackageItem() : emptyPackageItem(),
+      close: () => setEditIndex(null),
       save: (values: PackageItemValues) => {
-        if (itemPanel.index === null) append(values)
-        else {
-          const current = products[itemPanel.index]
-          // A changed name, price or weight no longer matches the saved product, so it's saved again at booking.
-          const changed = current.name !== values.name || current.amount !== values.amount || current.weight !== values.weight
-          update(itemPanel.index, { ...current, ...values, productId: changed ? undefined : current.productId })
-        }
-        setItemPanel({ open: false, index: null })
+        if (editIndex === null) return
+        const current = products[editIndex]
+        // A changed name, price or weight no longer matches the saved product, so it's saved again at booking.
+        const changed = current.name !== values.name || current.amount !== values.amount || current.weight !== values.weight
+        update(editIndex, { ...current, ...values, productId: changed ? undefined : current.productId, catalogId: changed ? undefined : current.catalogId })
+        setEditIndex(null)
       },
     },
-    addFromCatalog: (item: CatalogItem) => append({ name: item.name, quantity: '1', amount: item.price, weight: item.weight, productId: item.productId }),
     removeProduct: remove,
+    /** Each line's picture, from the saved item it came from ('' for typed or edited lines). */
+    lineImage: (index: number) => {
+      const catalogId = products[index]?.catalogId
+      return catalogId === undefined ? '' : (itemsQuery.data ?? []).find(item => item.id === catalogId)?.image ?? ''
+    },
+    /** Package totals, live as quantities change. Lines without a weight use the default package weight. */
+    packageSummary: {
+      units: products.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0),
+      weight: products.reduce((sum, item) => sum + (Number(item.weight) > 0 ? Number(item.weight) * (Number(item.quantity) || 1) : 0), 0),
+      defaultWeightLines: products.filter(item => !(Number(item.weight) > 0)).length,
+      value: total,
+    },
     // Checkout method step
     method,
     setMethod: (value: CheckoutMethod) => setValue('method', value, { shouldDirty: true }),

@@ -67,7 +67,7 @@ export const db: {
   },
   employees: [
     { id: 'emp-1', name: 'Kemi Adeyemi', email: 'kemi@kemistore.com', phone: '0802 400 1294', role: 'OWNER', roleLabel: 'Owner', status: 'Active' },
-    { id: 'emp-2', name: 'Tola Martins', email: '', phone: '0803 111 2233', role: 'ADMIN-ATTENDANT', roleLabel: 'Admin attendant', status: 'Active' },
+    { id: 'emp-2', name: 'Tola Martins', email: '', phone: '0803 111 2233', role: 'ADMIN-ATTENDANT', roleLabel: 'Super admin', status: 'Active' },
     { id: 'emp-3', name: 'Ada Okeke', email: '', phone: '0805 444 5566', role: 'ATTENDANT', roleLabel: 'Attendant', status: 'Inactive' },
   ],
   stats: { totalShipments: 1284, inTransit: 18, deliveredThisMonth: 342, deliverySpend: 428650, fulfilled: 1146, pending: 18 },

@@ -43,8 +43,8 @@ export function ProfileMenu() {
         </div>
       </div>
       <div className="mt-1 space-y-0.5 py-1">
-        {bar.isOwner && <Item icon="building" label="Business settings" onClick={bar.goToBusinessSettings}/>}
-        {bar.isOwner && <Item icon="shield" label="KYC verification" onClick={bar.goToKyc} badge={bar.kycBadge}/>}
+        {bar.canManageSetup && <Item icon="building" label="Business settings" onClick={bar.goToBusinessSettings}/>}
+        {bar.canManageSetup && <Item icon="shield" label="KYC verification" onClick={bar.goToKyc} badge={bar.kycBadge}/>}
         <Item icon="route" label="Switch business" onClick={bar.switchBusiness}/>
         <Item icon="help" label="Help & support" onClick={bar.openHelp}/>
       </div>

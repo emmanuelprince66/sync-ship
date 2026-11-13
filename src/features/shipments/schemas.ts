@@ -1,13 +1,19 @@
 import { z } from 'zod'
 import { DEFAULT_STATE, NIGERIAN_STATES } from './constants'
 
+/** Most of one item a package (and a checkout link) can carry. */
+export const MAX_ITEM_QUANTITY = 999
+
 export const packageItemSchema = z.object({
   name: z.string().trim().min(1, 'Enter the product name'),
-  quantity: z.string(),
+  quantity: z.string().refine(value => Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= MAX_ITEM_QUANTITY, `Enter a quantity from 1 to ${MAX_ITEM_QUANTITY}`),
   amount: z.string(),
-  weight: z.string().refine(value => Number(value) > 0, 'Enter the package weight'),
+  // Optional: blank (or 0) uses the business's default package weight for delivery rates.
+  weight: z.string().refine(value => value.trim() === '' || Number(value) >= 0, 'Weight cannot be negative'),
   /** Set when the line was picked from the item list; the backend orders saved products only. */
   productId: z.string().optional(),
+  /** The item-list entry this line came from, so picking it again adds to this line. */
+  catalogId: z.number().optional(),
 })
 
 const customerSchema = z.object({

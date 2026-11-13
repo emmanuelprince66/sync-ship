@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { toast } from 'sonner'
-import { useBusinessBanks, useCan, useWalletAccount, type TransactionFilter, type TransactionQuery, type WalletTrx } from '@/api/transactions'
+import { useBusinessBanks, useWalletAccount, type TransactionFilter, type TransactionQuery, type WalletTrx } from '@/api/transactions'
 import type { BusinessBank } from '@/api/business'
 import { useClipboard } from '@/hooks/useClipboard'
 import { useDebounce } from '@/hooks/useDebounce'
+import { usePermissions } from '@/hooks/usePermissions'
 import { exportTransactionsCsv } from '../format'
 import type { ReceiptDetails } from '../types'
 
@@ -20,8 +21,13 @@ export type WalletModal = 'transfer' | 'fund' | 'report' | 'subAccount' | 'kyc' 
 /** Everything the wallet page (sink-inventory's Transactions screen) shows and does. */
 export function useWalletPage() {
   const [params, setParams] = useSearchParams()
-  const canInitiateTransfer = useCan('can_initiate_expense_transfer')
-  const canManageBankDetails = useCan('manage_bank_details')
+  /**
+   * As sink's Transactions screen: manage_bank_details shows balances, accounts, funding and reports;
+   * Transfer also needs can_initiate_expense_transfer. Without them only the transactions list shows.
+   */
+  const { canManageWallet, canTransfer: canInitiateTransfer } = usePermissions()
+  const canManageBankDetails = canManageWallet
+  const allowedModal = (next: WalletModal) => next === null || (next === 'transfer' ? canInitiateTransfer : canManageWallet)
   const banks = useBusinessBanks()
 
   // Filters (sink: search, date range, page, ALL/CREDIT/DEBIT/ONLINE)
@@ -38,7 +44,7 @@ export function useWalletPage() {
   // Modals — `?action=fund|transfer` opens one (dashboard buttons link here)
   const [modal, setModal] = useState<WalletModal>(() => {
     const action = params.get('action')
-    return action === 'fund' || action === 'transfer' ? action : null
+    return (action === 'fund' || action === 'transfer') && allowedModal(action) ? action : null
   })
   const [kycDismissed, setKycDismissed] = useState(false)
   const [details, setDetails] = useState<WalletTrx | null>(null)
@@ -62,7 +68,7 @@ export function useWalletPage() {
   const closeModal = useCallback(() => setModal(null), [])
 
   return {
-    permissions: { canInitiateTransfer, canManageBankDetails },
+    permissions: { canInitiateTransfer, canManageBankDetails, canManageWallet },
     loading: account.isLoading || (account.isFetching && !account.data),
     refreshing: account.isFetching && Boolean(account.data),
 
@@ -97,9 +103,9 @@ export function useWalletPage() {
     transactions: account.data?.transactions ?? [],
     pagination: { page, pages: account.data?.pages ?? 1, setPage, pageSize, setPageSize: (size: number) => { setPageSize(size); setPage(1) } },
 
-    needsKyc: banks.needsKyc,
-    modal: modal ?? (banks.needsKyc && !kycDismissed ? 'kyc' : null),
-    openModal: setModal,
+    needsKyc: canManageWallet && banks.needsKyc,
+    modal: modal ?? (canManageWallet && banks.needsKyc && !kycDismissed ? 'kyc' : null),
+    openModal: (next: WalletModal) => setModal(allowedModal(next) ? next : null),
     closeModal: () => { if (modal === null && banks.needsKyc) setKycDismissed(true); closeModal() },
 
     fund: { copied, copyAccountNumber: () => { if (accountNumber) void copy(accountNumber) }, accountNumber },

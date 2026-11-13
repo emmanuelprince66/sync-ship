@@ -9,6 +9,7 @@ import { paths, settingsPath } from '@/routes/paths'
 import { useAuthStore, type AuthUser } from '@/stores/auth-store'
 import { useBusinessDataStore } from '@/stores/business-data-store'
 import { useSetupProgress } from '@/features/onboarding/useSetupProgress'
+import { usePermissions } from '@/hooks/usePermissions'
 import { useUiStore } from '@/stores/ui-store'
 import type { SettingsSection } from '@/api/types'
 
@@ -20,11 +21,16 @@ export function useSidebar() {
   const { data: shipments = [] } = useShipments()
   const business = useBusinessDataStore(state => state.businessData)
   const logout = useAuthStore(state => state.logout)
+  const permissions = usePermissions()
   const [menuOpen, setMenuOpen] = useState(false)
   const closeMenu = useCallback(() => setMenuOpen(false), [])
 
   const businessName = business?.name || 'Your business'
   return {
+    /** Settings is setup (sink: settings:view, else super admins). */
+    showSettings: permissions.canManageSetup,
+    /** Sidebar links the login may open (sink: the sidebar hides pages pageAllowed refuses). */
+    canOpen: permissions.canOpen,
     activeShipments: shipments.filter(shipment => shipment.status === 'In transit' || shipment.status === 'Awaiting pickup').length,
     businessName,
     businessLogo: business?.logo ?? '',
@@ -46,7 +52,7 @@ export function useSidebar() {
   }
 }
 
-const ROLE_LABELS: Record<string, string> = { OWNER: 'Owner', 'ADMIN-ATTENDANT': 'Admin', ATTENDANT: 'Attendant', PHARMACIST: 'Pharmacist', ACCOUNTANT: 'Accountant', 'INVENTORY-MANAGER': 'Inventory manager', 'PRODUCTION-MANAGER': 'Production manager' }
+const ROLE_LABELS: Record<string, string> = { OWNER: 'Owner', 'ADMIN-ATTENDANT': 'Super admin', MANAGER: 'Super admin', ATTENDANT: 'Attendant', PHARMACIST: 'Pharmacist', ACCOUNTANT: 'Accountant', 'INVENTORY-MANAGER': 'Inventory manager', 'PRODUCTION-MANAGER': 'Production manager' }
 
 /** Everything the top bar and its profile menu show and do (mirrors sink-inventory's TopBar). */
 const resolveUserName = (user: AuthUser | null | undefined) => {
@@ -64,6 +70,7 @@ export function useTopBar() {
   const business = useBusinessDataStore(state => state.businessData)
   const { data: kyc } = useKycStatus()
   const { data: unread = 0 } = useUnreadNotifications()
+  const { canManageSetup } = usePermissions()
   const [menuOpen, setMenuOpen] = useState(false)
   const closeMenu = useCallback(() => setMenuOpen(false), [])
   const go = (to: string) => { setMenuOpen(false); navigate(to) }
@@ -78,7 +85,8 @@ export function useTopBar() {
     email: user?.email ?? '',
     initials: initials(fullName || business?.name || 'U'),
     roleLabel: (user?.role && ROLE_LABELS[user.role]) || 'Member',
-    isOwner: !user?.role || user.role === 'OWNER',
+    /** Business settings and KYC. */
+    canManageSetup,
     businessName: business?.name ?? '',
     date: formatLongDate(),
     unread,
@@ -107,10 +115,12 @@ export function useSetupPrompt() {
   const wanted = useUiStore(state => state.setupPromptOpen)
   const setOpen = useUiStore(state => state.setSetupPromptOpen)
   const progress = useSetupProgress()
+  const { canManageSetup } = usePermissions()
   // Only for businesses with something left to do, and only once progress has loaded (no flash for complete ones).
   const incomplete = !progress.isLoading && progress.completed < progress.total
   return {
-    open: wanted && incomplete,
+    // Attendants can't do setup, so they're never asked to.
+    open: wanted && incomplete && canManageSetup,
     close: () => setOpen(false),
     goToSection: (section: SettingsSection) => {
       setOpen(false)

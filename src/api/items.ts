@@ -11,7 +11,7 @@ import type { CatalogItem, ItemMedia, ItemSale } from './types'
 /**
  * Items = the business's Virtual Products: lightweight catalog items with no stock
  * tracking, which work in shipping rates, checkout and order manifests.
- *  GET    product/virtual/{business_id}/?search&availability&listed_on_storefront&page&page_size
+ *  GET    product/virtual/{business_id}/?search&is_active&listed_on_storefront&page&page_size
  *  POST   product/virtual/{business_id}/         { name, price, description, weight, availability, listed_on_storefront }
  *  PATCH  product/virtual/{business_id}/{id}/    partial
  *  DELETE product/virtual/{business_id}/{id}/
@@ -347,16 +347,15 @@ const rowErrorText = (errors: unknown) => {
 }
 
 /**
- * Per-row outcomes of one bulk call, in the order the rows were sent. `row` is matched as a
- * 0-based or 1-based index of the batch; anything unreadable falls back to response order.
+ * Per-row outcomes of one bulk call, in the order the rows were sent. The API's `row` is a
+ * 0-based index of the batch; anything unreadable falls back to response order.
  */
 const readBulkResults = (response: unknown, count: number): ImportRowResult[] => {
   const entries = listFrom(response, ['results', 'data.results', 'data']).map(asRecord)
   const indexes = entries.map(entry => (entry.row === undefined || entry.row === null || str(entry.row) === '' ? NaN : num(entry.row)))
   const valid = indexes.every(Number.isInteger)
-  const offset = valid && indexes.length && !indexes.includes(0) && Math.max(...indexes) === count ? 1 : 0
   const byIndex = new Map<number, Record<string, unknown>>()
-  entries.forEach((entry, position) => byIndex.set(valid ? indexes[position] - offset : position, entry))
+  entries.forEach((entry, position) => byIndex.set(valid ? indexes[position] : position, entry))
   return Array.from({ length: count }, (_, index) => {
     const entry = byIndex.get(index)
     if (!entry) return { ok: false, reason: 'No result came back for this row. Check your item list before importing it again.' }
@@ -434,22 +433,22 @@ const useItemsKey = () => {
   return { key: [...queryKeys.items, isLive() ? businessId : 'mock'] as const, businessId }
 }
 
-export type ItemsPageQuery = { page: number; limit: number; search: string; availability?: boolean; listed?: boolean }
+export type ItemsPageQuery = { page: number; limit: number; search: string; isActive?: boolean; listed?: boolean }
 export type ItemsPageResult = { items: CatalogItem[]; pages: number; total: number }
 
-/** One page of virtual products, with the endpoint's search and availability/storefront filters. */
-const getItemsPage = async (businessId: string, { page, limit, search, availability, listed }: ItemsPageQuery): Promise<ItemsPageResult> => {
+/** One page of virtual products, with the endpoint's search, active-state and storefront filters. */
+const getItemsPage = async (businessId: string, { page, limit, search, isActive, listed }: ItemsPageQuery): Promise<ItemsPageResult> => {
   if (!isLive()) {
     const term = search.toLowerCase()
     const all = db.items.filter(item =>
       (!term || item.name.toLowerCase().includes(term))
-      && (availability === undefined || item.inStock === availability)
+      && (isActive === undefined || item.inStock === isActive)
       && (listed === undefined || (item.listed !== false) === listed))
     return mockDelay({ items: all.slice((page - 1) * limit, page * limit).map(item => ({ ...item })), pages: Math.max(Math.ceil(all.length / limit), 1), total: all.length })
   }
   const params = new URLSearchParams({ page: String(page), page_size: String(limit) })
   if (search) params.set('search', search)
-  if (availability !== undefined) params.set('availability', String(availability))
+  if (isActive !== undefined) params.set('is_active', String(isActive))
   if (listed !== undefined) params.set('listed_on_storefront', String(listed))
   const response = await apiRequest<unknown>(`product/virtual/${businessId}/?${params.toString()}`)
   const items = listFrom(response, ['results', 'data', 'results.data']).map(mapVirtualProduct)

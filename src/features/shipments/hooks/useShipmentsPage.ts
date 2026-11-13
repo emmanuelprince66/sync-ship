@@ -1,3 +1,4 @@
+import { usePermissions } from '@/hooks/usePermissions'
 import { useNavigate } from 'react-router'
 import { paths } from '@/routes/paths'
 import { useCallback, useRef, useState } from 'react'
@@ -9,6 +10,7 @@ import { useShipmentFilters } from './useShipmentFilters'
 import type { PaymentFilter } from '../utils'
 
 export function useShipmentsPage(tracking: boolean) {
+  const permissions = usePermissions()
   const [payment, setPayment] = useState<PaymentFilter>('All payments')
   // Paging like sink-inventory: page + rows per page, with search/status sent to the server.
   const [page, setPage] = useState(1)
@@ -53,6 +55,8 @@ export function useShipmentsPage(tracking: boolean) {
     /** Opens the status dropdown. */
     focusStatusFilter: useCallback(() => statusRef.current?.querySelector('button')?.click(), []),
     createShipment: () => navigate(paths.createShipment),
+    /** lib/access-map createShipments (sink: orders:manage or sales:create). */
+    canCreateShipments: permissions.canCreateShipments,
     exportCsv: () => exportShipmentsCsv(filters.filtered),
   }
 }

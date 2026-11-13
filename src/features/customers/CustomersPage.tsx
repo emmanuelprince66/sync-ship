@@ -22,13 +22,13 @@ export default function CustomersPage() {
     ? <EmptyState title="We couldn’t load your customers" note="Check your connection and try again." action={<Button variant="outline" onClick={page.retry}>Try again</Button>}/>
     : page.isFiltered
       ? <EmptyState icon="search" title="No customers match" note="Try another name, phone number or status."/>
-      : <EmptyState title="No customers yet" note="Add the people you sell to, so you can see their orders and reuse their details when you ship." action={<Button variant="outline" icon="plus" onClick={page.openAdd}>Add your first customer</Button>}/>
+      : <EmptyState title="No customers yet" note="Add the people you sell to, so you can see their orders and reuse their details when you ship." action={page.can.add && <Button variant="outline" icon="plus" onClick={page.openAdd}>Add your first customer</Button>}/>
 
   return <div>
     <PageHeader
       title="Customers"
       subtitle="Everyone you sell to, with their spend, debts and history."
-      actions={<Button icon="plus" onClick={page.openAdd} className="w-full sm:w-auto">Add customer</Button>}
+      actions={page.can.add && <Button icon="plus" onClick={page.openAdd} className="w-full sm:w-auto">Add customer</Button>}
     />
 
     {page.stats
@@ -41,7 +41,7 @@ export default function CustomersPage() {
         <Select aria-label="Filter by status" options={page.statusOptions} value={page.status} onValueChange={page.setStatus} className="w-full sm:w-[180px]" boxClassName="h-10 text-xs"/>
       </div>
       <div className={cn('transition-opacity', page.isFetching && 'opacity-60')} aria-busy={page.isFetching || undefined}>
-        <CustomersTable customers={page.customers} loading={page.isLoading} emptyState={emptyState} onOpen={page.openCustomer} onEdit={page.openEdit} onDelete={page.askDelete}/>
+        <CustomersTable customers={page.customers} loading={page.isLoading} emptyState={emptyState} onOpen={page.openCustomer} onEdit={page.can.edit ? page.openEdit : undefined} onDelete={page.can.delete ? page.askDelete : undefined}/>
       </div>
       {!page.isLoading && page.customers.length > 0 && <Pagination currentPage={page.pagination.page} totalPages={page.pagination.pages} onPageChange={page.pagination.setPage} pageSize={page.pagination.pageSize} onPageSizeChange={page.pagination.setPageSize}/>}
     </div>

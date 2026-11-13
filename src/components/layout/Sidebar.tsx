@@ -21,12 +21,12 @@ const activeStyle = ({ isActive }: { isActive: boolean }): CSSProperties | undef
 
 /** Logo, links, promo and account block. Shared by the desktop sidebar and the mobile drawer. */
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const { activeShipments } = useSidebar()
+  const { activeShipments, showSettings, canOpen } = useSidebar()
 
   return <>
     <div className="px-3"><Logo inverse/></div>
     <nav className="mt-10 space-y-1" aria-label="Main">
-      {navItems.map(item => <NavLink key={item.id} to={item.to} end={item.to === paths.dashboard} onClick={onNavigate} className={({ isActive }) => itemClass(isActive)} style={activeStyle}>
+      {navItems.filter(item => canOpen(item.to)).map(item => <NavLink key={item.id} to={item.to} end={item.to === paths.dashboard} onClick={onNavigate} className={({ isActive }) => itemClass(isActive)} style={activeStyle}>
         {({ isActive }) => <>
           <Icon name={item.icon} size={19} stroke={isActive ? 2.2 : 1.8}/><span className="whitespace-nowrap">{item.label}</span>
           {item.id === 'shipments' && activeShipments > 0 && <span className={cn('ml-auto rounded-full px-2 py-0.5 text-[10px] font-extrabold', isActive ? 'bg-[#DCF2D8] text-[#357345]' : 'bg-white/15 text-white')}>{activeShipments}</span>}
@@ -34,9 +34,9 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       </NavLink>)}
     </nav>
     <div className="my-5 border-t border-white/15"/>
-    <NavLink to={paths.settings} onClick={onNavigate} className={({ isActive }) => itemClass(isActive)} style={activeStyle}>
+    {showSettings && <NavLink to={paths.settings} onClick={onNavigate} className={({ isActive }) => itemClass(isActive)} style={activeStyle}>
       <Icon name="settings" size={19}/>Settings
-    </NavLink>
+    </NavLink>}
     <a href="mailto:support@syncship.africa" className="flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-bold text-white/70 hover:bg-white/10 hover:text-white"><Icon name="help" size={19}/>Help & support</a>
     <div className="mt-auto rounded-2xl bg-[#09261C]/35 p-4 text-white">
       <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-white/10"><Icon name="truck" size={19}/></div>

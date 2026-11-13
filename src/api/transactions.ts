@@ -33,12 +33,7 @@ export const transferCharge = (amount: number | string) => {
   return 50
 }
 
-// ─── Permissions (sink: user-store `can`, owners can do everything) ─────────
-
-export type WalletPermission = 'manage_bank_details' | 'can_initiate_expense_transfer' | 'view_transactions'
-
-export const useCan = (permission: WalletPermission) =>
-  useAuthStore(state => state.user?.role === 'OWNER' || !state.user?.role || state.user?.permissions?.[permission] === true)
+// ─── Permissions: decided in stores/types permissionsFor (sink's checks, lib/access-map.ts) ─────────
 
 export const useIsOwner = () => useAuthStore(state => state.user?.role === 'OWNER' || !state.user?.role)
 

@@ -3,7 +3,7 @@ import { createBrowserRouter, Navigate } from 'react-router'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { AppLoader } from '@/components/ui/AppLoader'
 import { PageLoader } from '@/components/ui/misc'
-import { GuestOnly, RequireAuth, RequireBusiness } from './guards'
+import { GuestOnly, RequireAuth, RequireBusiness, RequirePage, RequirePermission } from './guards'
 import { pages } from './pages'
 import { paths } from './paths'
 
@@ -25,7 +25,9 @@ export const router = createBrowserRouter([
       { path: paths.selectBusiness, element: <SelectBusinessPage/> },
       {
         element: <RequireBusiness/>,
-        children: [
+        children: [{
+          element: <RequirePage/>,
+          children: [
       { path: paths.createShipment, element: <CreateShipmentPage/> },
       { path: paths.storefront, element: <StorefrontPage/> },
       {
@@ -43,12 +45,19 @@ export const router = createBrowserRouter([
           { path: paths.withdraw, element: <Navigate to={`${paths.wallet}?action=transfer`} replace/> },
           { path: paths.walletTransactions, element: <Navigate to={paths.wallet} replace/> },
           // Show the loader during the redirect; a bare <Navigate/> rendered an empty page (white flash).
-          { path: paths.settings, element: <><PageLoader/><Navigate to={`${paths.settings}/storefront`} replace/></> },
-          { path: `${paths.settings}/:section`, element: <SettingsPage/> },
-          { path: paths.kyc, element: <KycPage/> },
+          {
+            // Setup is for super admins; attendants are sent back to Overview.
+            element: <RequirePermission permission="canManageSetup"/>,
+            children: [
+              { path: paths.settings, element: <><PageLoader/><Navigate to={`${paths.settings}/storefront`} replace/></> },
+              { path: `${paths.settings}/:section`, element: <SettingsPage/> },
+              { path: paths.kyc, element: <KycPage/> },
+            ],
+          },
         ],
       },
-        ],
+          ],
+        }],
       },
     ],
   },

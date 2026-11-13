@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { Outlet } from 'react-router'
 import { PageLoader } from '@/components/ui/misc'
 import { SetupPrompt } from '@/features/onboarding/SetupPrompt'
+import { usePermissionsSync } from '@/hooks/usePermissionsSync'
 import { usePreloadAppShell } from '@/routes/usePreloadAppShell'
 import { Header } from './Header'
 import { useSetupPrompt } from './hooks'
@@ -11,6 +12,8 @@ export function AppLayout() {
   const setupPrompt = useSetupPrompt()
   // Users who arrive already signed in skip the login page, so warm the other pages here too.
   usePreloadAppShell()
+  // Picks up permission changes the owner makes (sink: PermissionsSync).
+  usePermissionsSync()
 
   return <div className="min-h-screen bg-[#F7F9F7] text-[#09261C]">
     <Sidebar/>

@@ -5,7 +5,7 @@ import { STAFF_ROLES, useEmployees, useRemoveEmployee } from '@/api/settings'
 import type { Employee } from '@/api/types'
 import { useDisclosure } from '@/hooks/useDisclosure'
 
-export const ROLE_GUIDE = STAFF_ROLES.slice(0, 4)
+export const ROLE_GUIDE = STAFF_ROLES
 
 export const useTeamSection = () => {
   const { data: employees = [], isLoading, isError, refetch } = useEmployees()

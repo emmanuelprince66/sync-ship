@@ -36,7 +36,7 @@ export function TeamSection() {
                 : <button type="button" aria-label={`Remove ${employee.name}`} onClick={() => team.askRemove(employee)} className="flex h-8 w-8 items-center justify-center rounded-lg text-[#A0ADA6] hover:bg-[#FFF0EE] hover:text-[#D15B50]"><Icon name="trash" size={16}/></button>}
             </div>)}
     </div>
-    <div className="mt-5 rounded-2xl bg-[#F4F8F5] p-4 text-[10px] leading-5 text-[#687A71]"><strong className="text-[#315A3E]">Role access:</strong> {ROLE_GUIDE.map(role => `${role.label}: ${role.description}`).join(' ')} Only owners can change settings and KYC.</div>
+    <div className="mt-5 rounded-2xl bg-[#F4F8F5] p-4 text-[10px] leading-5 text-[#687A71]"><strong className="text-[#315A3E]">Role access:</strong> {ROLE_GUIDE.map(role => `${role.label}: ${role.description}`).join(' ')}</div>
     <SaveBar saving={false} onSave={team.save}/>
     <InviteEmployeeModal open={team.inviting} onClose={team.closeInvite}/>
     <Modal open={Boolean(team.removing)} onClose={team.cancelRemove} panelClassName="w-full max-w-md rounded-3xl bg-white p-7">

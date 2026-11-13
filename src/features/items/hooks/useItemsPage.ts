@@ -8,6 +8,7 @@ import { useShipmentStats } from '@/api/shipments'
 import type { CatalogItem } from '@/api/types'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useDisclosure } from '@/hooks/useDisclosure'
+import { usePermissions } from '@/hooks/usePermissions'
 import { paths } from '@/routes/paths'
 
 export type ItemsTab = 'inventory' | 'sales'
@@ -30,6 +31,8 @@ export const itemTabs: readonly { value: ItemsTab; label: string }[] = [
 /** State and actions for the Items page: tabs, search, modals and availability toggles. */
 export function useItemsPage() {
   const navigate = useNavigate()
+  /** Attendants only switch items on/off and see sales; adding, editing, pricing and importing is for super admins. */
+  const { canManageItems, canToggleItemAvailability } = usePermissions()
   const { data: items = [] } = useItems()
   const { data: sales = [] } = useItemSales()
   const { data: settings } = useBusinessSettings()
@@ -45,7 +48,7 @@ export function useItemsPage() {
     page,
     limit: pageSize,
     search: debouncedSearch,
-    availability: filter === 'available' ? true : filter === 'unavailable' ? false : undefined,
+    isActive: filter === 'available' ? true : filter === 'unavailable' ? false : undefined,
     listed: filter === 'listed' ? true : filter === 'hidden' ? false : undefined,
   })
   const storefront = useStorefrontSource()
@@ -108,6 +111,8 @@ export function useItemsPage() {
   }
 
   return {
+    canManageItems,
+    canToggleAvailability: canToggleItemAvailability,
     isLoading: pageQuery.isLoading,
     /** Real counts only: products listed online and orders on record (no visits endpoint exists). */
     activity: { listed: items.filter(item => item.inStock && item.listed !== false).length, orders: stats?.totalShipments ?? null },
@@ -135,7 +140,7 @@ export function useItemsPage() {
     closeDeleteItem: () => setDeleteItem(null),
     storefrontSource: storefront.source,
     storefrontSourceBusy: storefront.isLoading || storefront.isSaving,
-    showSourceNotice: !storefront.isLoading && storefront.source === 'INVENTORY',
+    showSourceNotice: canManageItems && !storefront.isLoading && storefront.source === 'INVENTORY',
     changeSource,
     editItem,
     openEditPrice: setEditItem,

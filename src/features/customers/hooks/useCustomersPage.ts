@@ -1,3 +1,4 @@
+import { usePermissions } from '@/hooks/usePermissions'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
@@ -37,7 +38,10 @@ export function useCustomersPage() {
       ]
     : null
 
+  const permissions = usePermissions()
   return {
+    /** sink Customers / Contact: customers:create, customers:edit, customers:delete. */
+    can: { add: permissions.canManageCustomers, edit: permissions.canEditCustomers, delete: permissions.canDeleteCustomers },
     searchInput,
     setSearch: (value: string) => { setSearchInput(value); setPage(1) },
     status: status || 'all',

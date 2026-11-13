@@ -21,16 +21,16 @@ export default function WalletPage() {
     <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <h2 className="text-xl font-black text-[#09261C]">Wallet</h2>
-        <p className="mt-1 text-xs text-[#7C8D85]">{page.permissions.canManageBankDetails ? `${page.accounts.length} connected ${page.accounts.length === 1 ? 'account' : 'accounts'}` : 'Your balance and transactions'}</p>
+        <p className="mt-1 text-xs text-[#7C8D85]">{!page.permissions.canManageWallet ? 'Money in and out of the business' : page.permissions.canManageBankDetails ? `${page.accounts.length} connected ${page.accounts.length === 1 ? 'account' : 'accounts'}` : 'Your balance and transactions'}</p>
       </div>
       {page.permissions.canManageBankDetails && <Button icon="plus" variant="outline" onClick={() => page.openModal('subAccount')} className="self-start sm:self-auto">Add account</Button>}
     </header>
 
     {page.permissions.canManageBankDetails && <AccountCards page={page}/>}
     {page.permissions.canManageBankDetails && <AccountBanner page={page} onManage={() => navigate(settingsPath('Payments & KYC'))}/>}
-    <FlowCards page={page}/>
+    {page.permissions.canManageWallet && <FlowCards page={page}/>}
     {/* Pending Akawopay settlements — not in the balance yet, so kept apart from the cards above (as in sink). */}
-    <PendingBnplPanel dateRange={dateRange}/>
+    {page.permissions.canManageWallet && <PendingBnplPanel dateRange={dateRange}/>}
     <TransactionsSection page={page}/>
 
     {page.needsKyc && <div className="flex justify-center pb-2"><Link to={paths.kyc} className="inline-flex items-center gap-2 rounded-xl bg-[#09261C] px-5 py-3 text-sm font-bold text-white hover:bg-[#123D2E]">Complete KYC verification</Link></div>}

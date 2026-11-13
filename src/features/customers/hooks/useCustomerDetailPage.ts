@@ -1,3 +1,4 @@
+import { usePermissions } from '@/hooks/usePermissions'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
@@ -33,7 +34,10 @@ export function useCustomerDetailPage() {
   const customer = data?.customer ?? null
   const address = customer?.address
 
+  const permissions = usePermissions()
   return {
+    /** sink Contact: customers:edit (fallback everyone), customers:delete (fallback admins). */
+    can: { edit: permissions.canEditCustomers, delete: permissions.canDeleteCustomers },
     goBack,
     isLoading: detail.isLoading,
     isError: detail.isError,

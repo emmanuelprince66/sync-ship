@@ -133,12 +133,13 @@ const useWalletKey = () => {
   return { key: [...queryKeys.wallet, isLive() ? businessId : 'mock', selectedBankId] as const, businessId, selectedBankId }
 }
 
-export const useWallet = () => {
+/** `enabled: false` skips the balance call (attendants never see the balance). */
+export const useWallet = ({ enabled = true }: { enabled?: boolean } = {}) => {
   const { key, businessId, selectedBankId } = useWalletKey()
   return useQuery({
     queryKey: key,
     queryFn: () => (isLive() ? getLiveWallet(businessId as string, selectedBankId) : mockDelay(structuredClone(db.wallet))),
-    enabled: !isLive() || Boolean(businessId),
+    enabled: enabled && (!isLive() || Boolean(businessId)),
   })
 }
 

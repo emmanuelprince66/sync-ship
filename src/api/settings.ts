@@ -17,18 +17,18 @@ import type { BusinessSettings, Employee, EmployeeRole, InviteEmployeeInput, Sta
  *  DELETE business/single_attendant/{id}/
  */
 
-/** Roles a business can give staff, labelled and described as in sink-inventory. */
+/**
+ * The two roles SyncShip gives staff. "Super admin" is sink-inventory's ADMIN-ATTENDANT (sees and
+ * does everything, like the owner); "Attendant" is ATTENDANT. Staff with other sink roles
+ * (accountant, inventory manager, …) get attendant access here.
+ */
 export const STAFF_ROLES: { value: StaffRole; label: string; description: string }[] = [
-  { value: 'ATTENDANT', label: 'Attendant', description: 'Records sales and creates shipments.' },
-  { value: 'ADMIN-ATTENDANT', label: 'Admin attendant', description: 'Manages staff, customers and day-to-day operations.' },
-  { value: 'INVENTORY-MANAGER', label: 'Inventory manager', description: 'Manages items, stock and pricing.' },
-  { value: 'ACCOUNTANT', label: 'Accountant', description: 'Sees transactions, expenses and payouts.' },
-  { value: 'PHARMACIST', label: 'Pharmacist', description: 'Dispenses and manages pharmacy stock.' },
-  { value: 'PRODUCTION-MANAGER', label: 'Production manager', description: 'Handles production inventory and quality.' },
+  { value: 'ATTENDANT', label: 'Attendant', description: 'Turns items on or off, sees sales, creates shipments and sends checkout links, adds customers, and sees wallet transactions. No settings, balances or transfers.' },
+  { value: 'ADMIN-ATTENDANT', label: 'Super admin', description: 'Sees and does everything the owner can: items and prices, wallet and transfers, settings, KYC and team.' },
 ]
 
 export const roleLabel = (role: string) =>
-  role === 'OWNER' ? 'Owner' : STAFF_ROLES.find(item => item.value === role)?.label ?? (role ? role.charAt(0) + role.slice(1).toLowerCase().replace(/-/g, ' ') : 'Staff')
+  role === 'OWNER' ? 'Owner' : role === 'MANAGER' ? 'Super admin' : STAFF_ROLES.find(item => item.value === role)?.label ?? (role ? role.charAt(0) + role.slice(1).toLowerCase().replace(/-/g, ' ') : 'Staff')
 
 /** Live baseline: nothing pre-filled. Real business values are merged over it. */
 const emptySettings = (): BusinessSettings => ({

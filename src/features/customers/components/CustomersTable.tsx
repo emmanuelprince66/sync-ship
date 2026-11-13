@@ -13,16 +13,17 @@ type Props = {
   loading: boolean
   emptyState: ReactNode
   onOpen: (customer: Customer) => void
-  onEdit: (customer: Customer) => void
-  onDelete: (customer: Customer) => void
+  /** Left out when the login may not edit / delete customers (lib/access-map). */
+  onEdit?: (customer: Customer) => void
+  onDelete?: (customer: Customer) => void
 }
 
 const iconButton = 'relative z-10 flex h-8 w-8 items-center justify-center rounded-lg text-[#7C8D85] transition-colors'
 
 function Actions({ customer, onEdit, onDelete }: Pick<Props, 'onEdit' | 'onDelete'> & { customer: Customer }) {
   return <div className="flex justify-end gap-1">
-    <button type="button" aria-label={`Edit ${customer.name}`} onClick={() => onEdit(customer)} className={`${iconButton} hover:bg-[#EEF5F0] hover:text-[#286B43]`}><Icon name="edit" size={15}/></button>
-    <button type="button" aria-label={`Delete ${customer.name}`} onClick={() => onDelete(customer)} className={`${iconButton} hover:bg-[#FDECEA] hover:text-[#C2413A]`}><Icon name="trash" size={15}/></button>
+    {onEdit && <button type="button" aria-label={`Edit ${customer.name}`} onClick={() => onEdit(customer)} className={`${iconButton} hover:bg-[#EEF5F0] hover:text-[#286B43]`}><Icon name="edit" size={15}/></button>}
+    {onDelete && <button type="button" aria-label={`Delete ${customer.name}`} onClick={() => onDelete(customer)} className={`${iconButton} hover:bg-[#FDECEA] hover:text-[#C2413A]`}><Icon name="trash" size={15}/></button>}
   </div>
 }
 

@@ -13,13 +13,16 @@ const toValues = (item: CatalogItem | null): ItemFormValues => (item
   ? { name: item.name, description: item.description ?? '', price: item.price, weight: Number(item.weight) ? item.weight : '', sku: item.sku ?? '', available: item.inStock, listed: item.listed !== false }
   : itemFormDefaults)
 
-/** Add or edit one item, with its picture gallery and (when adding) a SKU lookup that fills it in. */
-export function useItemForm({ open, item, onClose }: { open: boolean; item: CatalogItem | null; onClose: () => void }) {
+/**
+ * Add or edit one item, with its picture gallery and (when adding) a SKU lookup that fills it in.
+ * `onSaved` receives the saved item (e.g. the shipment flow adds a new item to the package).
+ */
+export function useItemForm({ open, item, onClose, onSaved }: { open: boolean; item: CatalogItem | null; onClose: () => void; onSaved?: (item: CatalogItem) => void }) {
   const addItem = useAddItem()
   const updateItem = useUpdateItem()
   const form = useForm<ItemFormValues>({ resolver: zodResolver(itemFormSchema), defaultValues: toValues(item) })
   const { reset, setValue, control, register, handleSubmit, formState: { errors } } = form
-  const [available, listed] = useWatch({ control, name: ['available', 'listed'] })
+  const [available, listed, weight] = useWatch({ control, name: ['available', 'listed', 'weight'] })
   const gallery = useItemGallery()
 
   const fillFromSku = async (product: SkuProduct) => {
@@ -47,14 +50,14 @@ export function useItemForm({ open, item, onClose }: { open: boolean; item: Cata
     if (item) {
       updateItem.mutate(
         { ...item, name: values.name.trim(), description: values.description.trim(), price: values.price, weight: values.weight || '0', sku: values.sku, inStock: values.available, listed: values.listed, gallery: gallery.toChange(true) },
-        { onSuccess: () => { toast.success('Item updated'); onClose() }, onError },
+        { onSuccess: saved => { toast.success('Item updated'); onSaved?.(saved); onClose() }, onError },
       )
       return
     }
     const pictures = gallery.toChange(false)
     addItem.mutate(
       { ...values, sku: values.sku || sku.sku.trim(), image: pictures?.previewUrls[0] ?? '', newImages: pictures?.newImages, imageUrl: pictures?.imageUrl ?? undefined, previewUrls: pictures?.previewUrls },
-      { onSuccess: created => { toast.success(`${created.name} added to your items`); onClose() }, onError },
+      { onSuccess: created => { toast.success(`${created.name} added to your items`); onSaved?.(created); onClose() }, onError },
     )
   })
 
@@ -65,6 +68,8 @@ export function useItemForm({ open, item, onClose }: { open: boolean; item: Cata
     sku,
     available,
     listed,
+    /** Blank (or 0) weight: the backend uses the business's default package weight. */
+    usesDefaultWeight: !(Number(weight) > 0),
     setAvailable: (value: boolean) => setValue('available', value),
     setListed: (value: boolean) => setValue('listed', value),
     isEdit: Boolean(item),
