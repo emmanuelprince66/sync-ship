@@ -21,10 +21,14 @@ import type { BankAccount, Wallet, WalletTransaction } from './types'
 
 export const MIN_WITHDRAWAL = 1000
 
-/** Same fee table sink-inventory shows before a transfer. */
-export const transferCharge = (amount: number) => (amount <= 0 ? 0 : amount <= 5000 ? 10 : amount <= 50000 ? 25 : 50)
-/** Stamp duty only applies to transfers above ₦10,000. */
-export const stampDuty = (amount: number) => (amount > 10000 ? 50 : 0)
+/**
+ * The backend's transfer fee table, the same for plain wallet transfers and expense transfers:
+ * ₦25 up to and including ₦50,000, ₦50 below ₦500,000, ₦100 from ₦500,000,
+ * plus ₦50 stamp duty once the amount is ₦10,000 or more.
+ */
+export const transferCharge = (amount: number) => (!(amount > 0) ? 0 : amount <= 50_000 ? 25 : amount < 500_000 ? 50 : 100)
+/** ₦50 stamp duty once the amount is ₦10,000 or more. */
+export const stampDuty = (amount: number) => (amount >= 10_000 ? 50 : 0)
 
 const mapTransaction = (value: unknown, index: number): WalletTransaction => {
   const trx = asRecord(value)

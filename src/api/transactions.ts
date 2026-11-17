@@ -24,14 +24,21 @@ import { queryKeys } from './query-keys'
 
 export const TRANSACTIONS_PAGE_SIZE = 20
 
-/** sink's transfer fee: ₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above. */
+/**
+ * The backend's transfer fee table, the same for plain wallet transfers and expense transfers:
+ * ₦25 up to and including ₦50,000, ₦50 below ₦500,000, ₦100 from ₦500,000,
+ * plus ₦50 stamp duty once the amount is ₦10,000 or more.
+ */
 export const transferCharge = (amount: number | string) => {
   const value = Number(amount)
-  if (!amount || !value) return 0
-  if (value <= 5000) return 10
-  if (value <= 50000) return 25
-  return 50
+  if (!amount || !(value > 0)) return 0
+  if (value <= 50_000) return 25
+  if (value < 500_000) return 50
+  return 100
 }
+
+/** ₦50 stamp duty from ₦10,000. */
+export const transferStampDuty = (amount: number | string) => (Number(amount) >= 10_000 ? 50 : 0)
 
 // ─── Permissions: decided in stores/types permissionsFor (sink's checks, lib/access-map.ts) ─────────
 

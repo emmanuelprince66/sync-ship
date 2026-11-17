@@ -15,8 +15,8 @@ export const ACCESS = {
   // ─── Items (sink: Inventory / Products) ──────────────────────────────────
   /** The Items page. sink /inventory → inventory:view or products:view. */
   items: { matrix: ['inventory:view', 'products:view'], roles: 'everyone' },
-  /** Turn an item on/off for orders. Nearest sink check: inventory:view, or products:edit. */
-  toggleItemAvailability: { matrix: ['inventory:view', 'products:edit'], roles: 'everyone' },
+  /** Turn an item on/off. The backend lets a products:view user PATCH { availability } alone (no other fields). */
+  toggleItemAvailability: { matrix: ['products:view', 'inventory:view', 'products:edit'], roles: 'everyone' },
   /** Add, edit, delete, import, reprice, list on the storefront. sink Inventory edit → products:create/edit. */
   manageItems: { matrix: ['products:create', 'products:edit'], roles: 'adminLike' },
 

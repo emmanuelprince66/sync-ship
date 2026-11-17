@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { errorMessage } from '@/api/auth'
-import { extractTransactionId, transferCharge, useBeneficiaryEnquiry, useExpenseCategories, useRecentBeneficiaries, useTransfer, useTransferBanks, type RecentBeneficiary } from '@/api/transactions'
+import { extractTransactionId, transferCharge, transferStampDuty, useBeneficiaryEnquiry, useExpenseCategories, useRecentBeneficiaries, useTransfer, useTransferBanks, type RecentBeneficiary } from '@/api/transactions'
 import type { ReceiptDetails } from '../types'
 
 type Options = { open: boolean; bankId: string | null; senderName: string; fromLabel: string; onDone: (receipt: ReceiptDetails) => void; onClose: () => void }
@@ -31,6 +31,7 @@ export function useTransferFlow({ open, bankId, senderName, fromLabel, onDone, o
   const bankName = bankOptions.find(option => option.value === bankCode)?.label ?? ''
   const beneficiary = enquiry.data ?? null
   const charge = transferCharge(amount)
+  const stamp = transferStampDuty(amount)
 
   const reset = () => {
     setStep(1); setBankCode(''); setAccountNumber(''); setAmount(''); setCategoryId(''); setNarration(''); setPin(''); setError('')
@@ -98,7 +99,8 @@ export function useTransferFlow({ open, bankId, senderName, fromLabel, onDone, o
     pin,
     setPin,
     charge,
-    total: (Number(amount) || 0) + charge,
+    stamp,
+    total: (Number(amount) || 0) + charge + stamp,
     fromLabel,
     error,
     continueTransfer,

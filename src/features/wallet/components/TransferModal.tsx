@@ -70,6 +70,7 @@ export function TransferModal(props: TransferModalProps) {
           <SummaryLine label="Account number" value={flow.accountNumber}/>
           <SummaryLine label="Amount" value={formatBalance(Number(flow.amount) || 0)}/>
           <SummaryLine label="Transfer fee" value={formatBalance(flow.charge)}/>
+          {flow.stamp > 0 && <SummaryLine label="Stamp duty" value={formatBalance(flow.stamp)}/>}
           <SummaryLine label="Total" value={formatBalance(flow.total)} strong/>
         </div>
 
