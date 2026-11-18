@@ -25,8 +25,8 @@ export const ACCESS = {
   viewSales: { matrix: ['sales:view'], flag: 'view_orders', roles: 'everyone' },
   /** Shipping & tracking list. sink /orders → orders:view (flag view_orders). */
   shipments: { matrix: ['orders:view'], flag: 'view_orders', roles: 'everyone' },
-  /** Create a shipment and its payment link. sink /orders/create → orders:manage, /pos → sales:create (flag process_sales). */
-  createShipments: { matrix: ['orders:manage', 'sales:create'], flag: 'process_sales', roles: 'everyone' },
+  /** Create a shipment and its payment link. The backend requires sales:create for both (in-house order + payment link). */
+  createShipments: { matrix: ['sales:create'], flag: 'process_sales', roles: 'everyone' },
 
   // ─── Customers (sink: Customers) ────────────────────────────────────────
   /** Customers page. sink /customers → customers:view. sink's role rule: OWNER / ADMIN-ATTENDANT / ACCOUNTANT (attendants excluded). */
