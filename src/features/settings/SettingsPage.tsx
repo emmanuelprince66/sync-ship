@@ -2,6 +2,7 @@ import { Skeleton, SkeletonGroup } from '@/components/ui/Skeleton'
 import { CommunicationsSection } from './CommunicationsSection'
 import { useSettingsPage } from './hooks/useSettingsPage'
 import { PaymentsSection } from './PaymentsSection'
+import { PlanSection } from './PlanSection'
 import { SettingsNav } from './SettingsNav'
 import { ShippingSection } from './ShippingSection'
 import { StorefrontSettings } from './storefront/StorefrontSettings'
@@ -29,6 +30,7 @@ export default function SettingsPage() {
         {tab === 'Payments & KYC' && <PaymentsSection initial={settings.payments}/>}
         {tab === 'Team & users' && <TeamSection/>}
         {tab === 'Communications' && <CommunicationsSection initial={settings.channels} storefront={settings.storefront}/>}
+        {tab === 'Plan & billing' && <PlanSection/>}
       </>}
     </div>
   </div>

@@ -4,6 +4,7 @@ import { PageLoader } from '@/components/ui/misc'
 import { SetupPrompt } from '@/features/onboarding/SetupPrompt'
 import { usePermissionsSync } from '@/hooks/usePermissionsSync'
 import { usePreloadAppShell } from '@/routes/usePreloadAppShell'
+import { BranchLockBanner } from './BranchLockBanner'
 import { Header } from './Header'
 import { useSetupPrompt } from './hooks'
 import { MobileSidebar, Sidebar } from './Sidebar'
@@ -21,6 +22,7 @@ export function AppLayout() {
     <div className="lg:pl-[244px]">
       <Header/>
       <main className="mx-auto max-w-[1440px] p-4 md:p-7 lg:p-8">
+        <BranchLockBanner/>
         <Suspense fallback={<PageLoader/>}><Outlet/></Suspense>
       </main>
     </div>

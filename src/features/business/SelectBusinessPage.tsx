@@ -1,5 +1,6 @@
 import { Icon } from '@/components/ui/Icon'
 import { Logo } from '@/components/ui/Logo'
+import { PlanGateNotice } from '@/components/ui/PlanGateNotice'
 import { BusinessCard, CreateBusinessTile } from './components/BusinessCard'
 import { BusinessListError, BusinessListSkeleton, NoBusinesses } from './components/BusinessListStates'
 import { CreateBusinessModal } from './components/CreateBusinessModal'
@@ -32,14 +33,16 @@ export default function SelectBusinessPage() {
 
       {page.isLoading && <BusinessListSkeleton/>}
       {page.isError && <BusinessListError onRetry={page.retry}/>}
-      {page.isEmpty && <NoBusinesses canCreate={page.canCreate} onCreate={page.createModal.open}/>}
+      {page.isEmpty && <NoBusinesses canCreate={page.canCreate} onCreate={page.openCreate}/>}
       {!page.isLoading && !page.isError && !page.isEmpty && <>
         <div className="mb-3 flex items-end justify-between">
           <div><div className="text-sm font-extrabold text-[#17382C]">Your businesses</div><div className="mt-0.5 text-[11px] text-[#899890]">{page.cards.length} {page.cards.length === 1 ? 'business' : 'businesses'}</div></div>
         </div>
         <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
           {page.cards.map(card => <BusinessCard key={card.business.id} card={card} onSelect={() => page.select(card.business)}/>)}
-          {page.canCreate && <CreateBusinessTile onClick={page.createModal.open}/>}
+          {page.canCreate && (page.branchGate
+            ? <PlanGateNotice className="h-full" title={page.branchGate.title} body={page.branchGate.body} linkLabel="Upgrade plan"/>
+            : <CreateBusinessTile onClick={page.openCreate}/>)}
         </div>
       </>}
       {page.canGoBack && <button type="button" onClick={page.goBack} className="mt-6 flex w-full items-center justify-center gap-1 text-xs font-extrabold text-[#4A7D57] sm:hidden"><span className="rotate-180"><Icon name="arrow" size={15}/></span>Back to dashboard</button>}

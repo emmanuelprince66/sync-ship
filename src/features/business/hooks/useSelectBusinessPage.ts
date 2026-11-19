@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useLocation, useNavigate } from 'react-router'
 import { businessAddress, useBusinesses, type Business } from '@/api/business'
+import { usePlanGate } from '@/api/plan'
 import { useDisclosure } from '@/hooks/useDisclosure'
 import { initials } from '@/lib/format'
 import { paths } from '@/routes/paths'
@@ -32,6 +33,11 @@ export function useSelectBusinessPage() {
   const logout = useAuthStore(state => state.logout)
   const activate = useActivateBusiness()
   const createModal = useDisclosure()
+  // Branches (no_of_business) come from the owner's account plan, never a branch's own.
+  const plan = usePlanGate({ account: true })
+  const canCreate = canCreateBusiness(user?.role)
+  const branchLimit = plan.limit('no_of_business')
+  const atBranchLimit = canCreate && !isLoading && !isError && plan.atLimit('no_of_business', businesses.length)
 
   const from = (location.state as { from?: string } | null)?.from
   const destination = from && from !== paths.selectBusiness && from !== paths.login ? from : paths.dashboard
@@ -57,11 +63,16 @@ export function useSelectBusinessPage() {
     isError,
     retry: () => void refetch(),
     isEmpty: !isLoading && !isError && businesses.length === 0,
-    canCreate: canCreateBusiness(user?.role),
+    canCreate,
+    /** Plan gate on adding a branch: null when allowed. */
+    branchGate: atBranchLimit
+      ? { title: `Your ${plan.planName || 'current'} plan includes ${branchLimit} ${branchLimit === 1 ? 'business' : 'businesses'}`, body: 'Upgrade your plan to add another branch. Each new branch is billed on its own once created.' }
+      : null,
     /** Shown when the user came from inside the app ("Switch business") and can go back. */
     canGoBack: Boolean(currentId && cards.some(card => card.isCurrent)),
     goBack: () => navigate(destination, { replace: true }),
     select: enter,
+    openCreate: () => { if (!atBranchLimit) createModal.open() },
     onCreated: (business: Business) => {
       createModal.close()
       enter(business)

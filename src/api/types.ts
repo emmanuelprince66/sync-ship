@@ -157,7 +157,7 @@ export type Wallet = {
   walletBankId: string | null
 }
 
-export type SettingsSection = 'Storefront' | 'Shipping setup' | 'Payments & KYC' | 'Team & users' | 'Communications'
+export type SettingsSection = 'Storefront' | 'Shipping setup' | 'Payments & KYC' | 'Team & users' | 'Communications' | 'Plan & billing'
 
 export type StorefrontSettings = { name: string; phone: string; whatsapp: string; email: string; analytics: boolean; active: boolean }
 export type ShippingSettings = { business: string; contact: string; phone: string; location: string; category: string; defaultKg: string; active: boolean }

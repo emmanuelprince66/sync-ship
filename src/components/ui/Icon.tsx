@@ -6,7 +6,7 @@ export type IconName =
   | 'link' | 'user' | 'card' | 'check' | 'copy' | 'clock' | 'download' | 'more'
   | 'logout' | 'building' | 'bank' | 'shield' | 'close' | 'filter' | 'route'
   | 'eye' | 'eyeOff' | 'menu' | 'send' | 'arrowIn' | 'arrowOut'
-  | 'users' | 'edit' | 'note' | 'minus'
+  | 'users' | 'edit' | 'note' | 'minus' | 'lock' | 'crown'
 
 /** The design's stroke icon set (24px grid, currentColor). */
 export function Icon({ name, size = 20, stroke = 1.8 }: { name: IconName; size?: number; stroke?: number }) {
@@ -50,6 +50,8 @@ export function Icon({ name, size = 20, stroke = 1.8 }: { name: IconName; size?:
     users: <><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.2a6.5 6.5 0 0 1 3.5 5.8"/></>,
     edit: <><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></>,
     note: <><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></>,
+    lock: <><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></>,
+    crown: <><path d="m3 7 4.5 4L12 4l4.5 7L21 7l-2 12H5Z"/><path d="M5 19h14"/></>,
     route: <><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h3a2 2 0 0 0 2-2V8a2 2 0 0 1 2-2h1"/></>,
   }
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>

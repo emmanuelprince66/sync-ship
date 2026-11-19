@@ -32,9 +32,13 @@ export const settingsSlugs: Record<SettingsSection, string> = {
   'Payments & KYC': 'payments',
   'Team & users': 'team',
   'Communications': 'communications',
+  'Plan & billing': 'plan',
 }
 
 export const settingsPath = (section: SettingsSection) => `${paths.settings}/${settingsSlugs[section]}`
 
 export const sectionFromSlug = (slug: string | undefined): SettingsSection =>
   (Object.entries(settingsSlugs).find(([, value]) => value === slug)?.[0] as SettingsSection | undefined) ?? 'Storefront'
+
+/** Settings → Plan & billing, where every plan gate links to. */
+export const planPath = () => settingsPath('Plan & billing')

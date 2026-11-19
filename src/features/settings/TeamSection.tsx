@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/Button'
 import { Icon } from '@/components/ui/Icon'
 import { Modal, ModalFooter, ModalHeader } from '@/components/ui/Modal'
+import { PlanGateNotice } from '@/components/ui/PlanGateNotice'
 import { ListSkeleton } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/cn'
 import { initials } from '@/lib/format'
@@ -13,7 +14,8 @@ export function TeamSection() {
   const count = (value: number) => (team.isLoading ? '–' : value)
 
   return <>
-    <div className="flex flex-wrap items-start justify-between gap-4"><SectionHeading title="Employee accounts" description="Register team members and control what they can access."/><Button icon="plus" onClick={team.openInvite}>Add employee</Button></div>
+    <div className="flex flex-wrap items-start justify-between gap-4"><SectionHeading title="Employee accounts" description="Register team members and control what they can access."/><Button icon={team.attendantGate ? 'lock' : 'plus'} onClick={team.openInvite} disabled={Boolean(team.attendantGate)}>Add employee</Button></div>
+    {team.attendantGate && <PlanGateNotice className="mt-5" title={team.attendantGate.title} body={team.attendantGate.body} linkLabel={team.attendantGate.link}/>}
     <div className="mt-6 grid grid-cols-3 gap-3">
       <div className="rounded-2xl bg-[#F3F7F4] p-4"><div className="text-xl font-black text-[#17382C]">{count(team.counts.total)}</div><div className="mt-1 text-[10px] text-[#829189]">Total users</div></div>
       <div className="rounded-2xl bg-[#F3F7F4] p-4"><div className="text-xl font-black text-[#17382C]">{count(team.counts.active)}</div><div className="mt-1 text-[10px] text-[#829189]">Active</div></div>

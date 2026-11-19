@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { usePlanGate } from '@/api/plan'
 import { getStoreUrl, type StoreChannel, type StorefrontProfile } from '@/api/storefront-settings'
 import { useClipboard } from '@/hooks/useClipboard'
 import { useDisclosure } from '@/hooks/useDisclosure'
@@ -19,6 +20,9 @@ export function useStoreLink(profile: StorefrontProfile) {
   const { copied, copy } = useClipboard()
   const domainDialog = useDisclosure()
   const url = getStoreUrl(profile, channel)
+  const plan = usePlanGate()
+  // Soft gate: an existing domain stays visible, but a new one can't be entered on a plan without it.
+  const domainLocked = !plan.customDomain
 
   const domainStatus: 'none' | 'connected' | 'pending' = !profile.customDomain ? 'none' : profile.customDomainApproved ? 'connected' : 'pending'
 
@@ -34,5 +38,9 @@ export function useStoreLink(profile: StorefrontProfile) {
     domain: profile.customDomain,
     domainStatus,
     domainDialog,
+    domainLocked,
+    domainLockReason: plan.branchLocked
+      ? { title: 'This branch needs its own plan', body: 'Only your first business is covered by your account plan. Subscribe this branch to use a custom domain.', link: 'Subscribe this branch' }
+      : { title: `Custom domains aren’t included on ${plan.planName || 'your plan'}`, body: profile.customDomain ? 'Your current domain stays as it is. Upgrade to change it.' : 'Upgrade to put your store on your own address, like shop.yourbusiness.com.', link: 'Upgrade plan' },
   }
 }

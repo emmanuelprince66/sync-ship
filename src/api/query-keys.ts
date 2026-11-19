@@ -13,4 +13,6 @@ export const queryKeys = {
   settings: ['settings'] as const,
   employees: ['employees'] as const,
   customers: ['customers'] as const,
+  plans: ['plans'] as const,
+  activePlan: ['active-plan'] as const,
 }

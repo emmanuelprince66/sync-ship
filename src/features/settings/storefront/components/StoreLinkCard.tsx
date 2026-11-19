@@ -2,6 +2,7 @@ import type { StorefrontProfile } from '@/api/storefront-settings'
 import { Button } from '@/components/ui/Button'
 import { SegmentedTabs } from '@/components/ui/common'
 import { Icon } from '@/components/ui/Icon'
+import { PlanGateNotice } from '@/components/ui/PlanGateNotice'
 import { cn } from '@/lib/cn'
 import { channelOptions, useStoreLink } from '../hooks/useStoreLink'
 import { CustomDomainModal } from './CustomDomainModal'
@@ -31,8 +32,9 @@ export function StoreLinkCard({ profile }: { profile: StorefrontProfile }) {
         <div className="flex flex-wrap items-center gap-2"><span className="text-xs font-extrabold text-[#28483B]">Custom domain</span>{link.domainStatus !== 'none' && <span className={cn('rounded-full px-2 py-0.5 text-[9px] font-extrabold', domainBadge[link.domainStatus].className)}>{domainBadge[link.domainStatus].label}</span>}</div>
         <div className="mt-1 truncate text-[10px] text-[#7C8D85]">{link.domain || 'Use your own address, like shop.yourbusiness.com'}</div>
       </div>
-      <Button variant="outline" icon={link.domain ? 'settings' : 'plus'} onClick={link.domainDialog.open} className="py-2 text-xs">{link.domain ? 'Change domain' : 'Connect domain'}</Button>
+      <Button variant="outline" icon={link.domainLocked ? 'lock' : link.domain ? 'settings' : 'plus'} onClick={link.domainDialog.open} disabled={link.domainLocked} className="py-2 text-xs">{link.domain ? 'Change domain' : 'Connect domain'}</Button>
     </div>
-    <CustomDomainModal open={link.domainDialog.isOpen} onClose={link.domainDialog.close} currentDomain={link.domain}/>
+    {link.domainLocked && <PlanGateNotice compact className="mt-3" title={link.domainLockReason.title} body={link.domainLockReason.body} linkLabel={link.domainLockReason.link}/>}
+    <CustomDomainModal open={link.domainDialog.isOpen && !link.domainLocked} onClose={link.domainDialog.close} currentDomain={link.domain}/>
   </SettingsCard>
 }

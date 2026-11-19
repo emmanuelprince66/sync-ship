@@ -9,6 +9,7 @@ const tabs: { name: SettingsSection; icon: IconName; description: string }[] = [
   { name: 'Payments & KYC', icon: 'wallet', description: 'Payments, wallet and verification' },
   { name: 'Team & users', icon: 'user', description: 'Employee accounts and roles' },
   { name: 'Communications', icon: 'bell', description: 'Customer and order updates' },
+  { name: 'Plan & billing', icon: 'crown', description: 'Your plan, usage and upgrades' },
 ]
 
 export function SettingsNav({ active, onSelect }: { active: SettingsSection; onSelect: (section: SettingsSection) => void }) {
