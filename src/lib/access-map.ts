@@ -25,6 +25,8 @@ export const ACCESS = {
   viewSales: { matrix: ['sales:view'], flag: 'view_orders', roles: 'everyone' },
   /** Shipping & tracking list. sink /orders → orders:view (flag view_orders). */
   shipments: { matrix: ['orders:view'], flag: 'view_orders', roles: 'everyone' },
+  /** Move a manual (not Shipbubble) order through Shipping / Delivered / Returned. sink ViewOrder → orders:manage, fallback true. */
+  updateShipping: { matrix: ['orders:manage', 'orders:edit'], roles: 'everyone' },
   /** Create a shipment and its payment link. The backend requires sales:create for both (in-house order + payment link). */
   createShipments: { matrix: ['sales:create'], flag: 'process_sales', roles: 'everyone' },
 

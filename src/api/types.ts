@@ -1,4 +1,7 @@
-export type ShipmentStatus = 'Delivered' | 'In transit' | 'Awaiting pickup' | 'Pending payment'
+export type ShipmentStatus = 'Delivered' | 'In transit' | 'Awaiting pickup' | 'Pending payment' | 'Returned'
+
+/** order.delivery.type: Shipbubble (automated), the business's own delivery (manual), or the customer collects. */
+export type DeliveryType = 'SHIPBUBBLE' | 'IN-HOUSE' | 'PICKUP'
 
 export type Shipment = {
   id: string
@@ -18,8 +21,14 @@ export type Shipment = {
   paymentStatus?: string
   /** Live only: numeric amount in naira (amount is the formatted string). */
   amountValue?: number
-  /** Live only: delivery fee in naira. */
+  /** Live only: delivery fee in naira (order.shipping_fee / delivery.shipping_fee: the rate or shipping location price picked). */
   shippingFee?: number
+  /** Live only: how it's delivered. Unknown on older orders. */
+  deliveryType?: DeliveryType
+  /** Live only: OUTSTORE (delivered) or INSTORE (sold at the counter, nothing to ship). */
+  channel?: string
+  /** Live only: amount paid so far, in naira. */
+  amountPaid?: number
   customerPhone?: string
   customerEmail?: string
   /** Live only: how the customer paid (e.g. BNPL, BANK-TRANSFER, CARD). */

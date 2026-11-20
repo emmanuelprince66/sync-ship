@@ -5,6 +5,7 @@ import { Drawer, ModalTitle } from '@/components/ui/Modal'
 import { CardSkeleton } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/cn'
 import { useOrderDetails } from '../hooks/useShipmentDrawer'
+import { DeliveryCard, ManualStatusCard } from './ManualShipping'
 import { PaymentCard } from './PaymentCard'
 import { BnplStatusBadge } from '@/features/bnpl'
 import { StatusBadge } from './StatusBadge'
@@ -32,7 +33,7 @@ function OrderDetails({ shipment, onClose, onDownloadReceipt, onTrack }: OrderDr
       <div className="rounded-2xl bg-[#F3F8F4] p-5"><div className="flex items-center justify-between gap-3"><div className="flex min-w-0 flex-wrap items-center gap-1.5"><StatusBadge status={shipment.status} rawStatus={shipment.rawStatus}/><BnplStatusBadge paymentType={shipment.paymentType} bnplStatus={shipment.bnplStatus} paid={shipment.paymentStatus?.toUpperCase() === 'PAID'}/></div><span className="text-lg font-black text-[#17382C]">{shipment.amount}</span></div><div className="mt-5 flex items-center gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-sm font-black text-[#438352]">{shipment.carrier[0]}</div><div className="min-w-0"><div className="truncate text-xs font-extrabold text-[#28483B]">{shipment.carrier}</div><div className="mt-1 text-[10px] text-[#84948C]">Booked {shipment.date}</div></div></div></div>
 
       {order.loading ? <CardSkeleton className={SECTION} lines={4}/> : <div className={SECTION}>
-        <div className="mb-5 flex items-center justify-between gap-3"><div className="text-xs font-extrabold text-[#17382C]">Delivery progress</div><button type="button" onClick={order.refreshTracking} disabled={order.refreshing} className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-extrabold text-[#438352] hover:bg-[#EAF5E9] disabled:opacity-45"><span className={cn(order.refreshing && 'animate-spin')}><Icon name="route" size={13}/></span>{order.refreshing ? 'Refreshing…' : 'Refresh tracking'}</button></div>
+        <div className="mb-5 flex items-center justify-between gap-3"><div className="text-xs font-extrabold text-[#17382C]">Delivery progress</div>{order.automated && <button type="button" onClick={order.refreshTracking} disabled={order.refreshing} className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-extrabold text-[#438352] hover:bg-[#EAF5E9] disabled:opacity-45"><span className={cn(order.refreshing && 'animate-spin')}><Icon name="route" size={13}/></span>{order.refreshing ? 'Refreshing…' : 'Refresh tracking'}</button>}</div>
         <div className="space-y-0">{order.stages.map((stage, index) => <div key={stage.label} className="relative flex gap-3 pb-6 last:pb-0">{index < order.stages.length - 1 && <span className={cn('absolute left-[11px] top-6 h-full w-[2px]', index + 1 < order.progress ? 'bg-[#529661]' : 'bg-[#DFE7E2]')}/>}<div className={cn('relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2', index < order.progress ? 'border-[#529661] bg-[#529661] text-white' : 'border-[#D7E1DB] bg-white text-[#9AA8A1]')}>{index < order.progress ? <Icon name="check" size={11} stroke={3}/> : <span className="h-1.5 w-1.5 rounded-full bg-current"/>}</div><div className="flex-1"><div className="flex justify-between gap-3"><span className={cn('text-xs font-extrabold', index < order.progress ? 'text-[#28483B]' : 'text-[#88968F]')}>{stage.label}</span><span className="text-[9px] font-semibold text-[#96A39D]">{stage.time}</span></div><div className="mt-1 text-[10px] leading-4 text-[#829189]">{stage.detail}</div></div></div>)}</div>
       </div>}
 
@@ -40,9 +41,14 @@ function OrderDetails({ shipment, onClose, onDownloadReceipt, onTrack }: OrderDr
 
       {order.loading ? <CardSkeleton className={SECTION} lines={2}/> : <div className={SECTION}><div className="mb-4 text-xs font-extrabold text-[#17382C]">Package</div>{order.packageLines.length === 0 ? <div className="text-[10px] text-[#8A9992]">No package details for this order.</div> : order.packageLines.map(line => <div key={line.key} className="flex items-center justify-between gap-3 border-t border-[#EDF1EF] py-3 first:border-0 first:pt-0 last:pb-0"><div className="min-w-0"><div className="truncate text-xs font-bold text-[#34483F]">{line.name}</div><div className="mt-1 text-[10px] text-[#8A9992]">{line.meta}</div></div><span className="text-xs font-extrabold text-[#28483B]">{line.amount}</span></div>)}</div>}
 
+      {!order.loading && <ManualStatusCard order={order}/>}
+
+      {!order.loading && <DeliveryCard order={order}/>}
+
       {!order.loading && <PaymentCard shipment={shipment}/>}
 
-      <div className="grid grid-cols-2 gap-3"><Button variant="outline" icon="download" onClick={onDownloadReceipt}>Receipt</Button><Button icon="truck" onClick={onTrack}>Track live</Button></div>
+      {/* Live tracking follows a Shipbubble courier; manual orders have nothing to track. */}
+      <div className="grid grid-cols-2 gap-3"><Button variant="outline" icon="download" onClick={onDownloadReceipt}>Download receipt</Button><Button variant="outline" onClick={order.print}>Print receipt</Button>{order.automated && <Button icon="truck" onClick={onTrack} className="col-span-2">Track live</Button>}</div>
     </div>
   </>
 }

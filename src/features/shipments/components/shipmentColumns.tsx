@@ -2,6 +2,7 @@ import { createColumnHelper } from '@tanstack/react-table'
 import type { Shipment } from '@/api/types'
 import { Icon } from '@/components/ui/Icon'
 import { BnplStatusBadge } from '@/features/bnpl'
+import { formatNaira } from '@/lib/format'
 import { StatusBadge } from './StatusBadge'
 
 const column = createColumnHelper<Shipment>()
@@ -23,6 +24,8 @@ export const buildShipmentColumns = (onView?: (shipment: Shipment) => void) => [
   }),
   column.accessor('status', { header: 'Status', cell: ({ getValue, row }) => <div className="flex flex-col items-start gap-1"><StatusBadge status={getValue()} rawStatus={row.original.rawStatus}/><BnplStatusBadge paymentType={row.original.paymentType} bnplStatus={row.original.bnplStatus} paid={row.original.paymentStatus?.toUpperCase() === 'PAID'}/></div> }),
   column.accessor('amount', { header: 'Amount', meta: { cellClassName: 'text-xs font-extrabold text-[#17382C]' } }),
+  // The delivery cost the business set (shipping location price) or picked (courier rate), as sink's Orders shipping_fee column.
+  column.display({ id: 'fee', header: 'Delivery fee', cell: ({ row: { original } }) => <span className="text-xs font-bold text-[#53665D]">{original.shippingFee ? formatNaira(original.shippingFee) : original.deliveryType === 'PICKUP' ? 'Free' : '—'}</span> }),
   column.display({
     id: 'actions',
     header: () => <span className="sr-only">Actions</span>,

@@ -45,6 +45,8 @@ export const permissionsFor = (subject: AccessSubject) => {
     canViewSales: can('viewSales'),
     canViewShipments: can('shipments'),
     canCreateShipments: can('createShipments'),
+    /** Move a manual order's shipping status (Shipping / Delivered / Returned). */
+    canUpdateShipping: can('updateShipping'),
     canViewCustomers: can('customers'),
     canManageCustomers: can('addCustomers'),
     canEditCustomers: can('editCustomers'),

@@ -64,6 +64,7 @@ export function ShippingMethodsCard() {
         <div className="mt-6 space-y-4">
           <Field label="Location Name *" placeholder="e.g., United States, Europe, Worldwide" error={errors.location?.message} {...register('location')}/>
           <Field label="Shipping Fee" inputMode="decimal" placeholder="0.00" suffix="NGN" error={errors.fee?.message} {...register('fee')}/>
+          <p className="-mt-1 text-[10px] leading-4 text-[#7C8D85]">Leave it empty for free delivery or a pickup point, e.g. &ldquo;Pickup at our Lekki store&rdquo;.</p>
           <label className="block" htmlFor="shipping-description">
             <span className="mb-2 block text-[12px] font-extrabold text-[#34483F]">Shipping Description *</span>
             <textarea id="shipping-description" rows={3} placeholder="Describe the shipping method, delivery time, and any special conditions..." aria-invalid={errors.description ? true : undefined} className={cn('w-full resize-none rounded-xl border border-[#DCE7E0] bg-white px-3.5 py-3 text-sm font-semibold text-[#09261C] outline-none transition placeholder:font-medium placeholder:text-[#9AABA3] focus:border-[#529661] focus:ring-4 focus:ring-[#529661]/10', errors.description && 'border-[#E65A4F]')} {...register('description')}/>

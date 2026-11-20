@@ -1,6 +1,6 @@
 import type { Shipment, ShipmentStatus } from '@/api/types'
 
-export const STATUS_FILTER_OPTIONS = ['All statuses', 'In transit', 'Delivered', 'Awaiting pickup', 'Pending payment'] as const
+export const STATUS_FILTER_OPTIONS = ['All statuses', 'In transit', 'Delivered', 'Awaiting pickup', 'Pending payment', 'Returned'] as const
 export type StatusFilter = typeof STATUS_FILTER_OPTIONS[number]
 
 export const ACTIVE_STATUSES: ShipmentStatus[] = ['In transit', 'Awaiting pickup']
@@ -26,6 +26,7 @@ export const downloadReceipt = (shipment: Shipment) => {
     `Delivery partner: ${shipment.carrier}`,
     `Status: ${shipment.status}`,
     `Amount: ${shipment.amount}`,
+    ...(shipment.shippingFee ? [`Delivery fee: ${new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(shipment.shippingFee)}`] : []),
   ].join('\n')
   const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }))
   const anchor = document.createElement('a')

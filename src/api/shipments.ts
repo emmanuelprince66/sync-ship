@@ -102,7 +102,7 @@ export const useRefreshTracking = () => {
   return useMutation({ mutationFn: (orderId: string) => (isLive() ? refreshTracking(orderId) : mockDelay(null)), onSuccess: invalidate })
 }
 
-/** PATCH order/change_shipping/{id}/?status= — manual status change (PENDING | SHIPPED | DELIVERED). */
+/** PATCH order/change_shipping/{id}/?status= — manual status change (PENDING | SHIPPED | DELIVERED | RETURNED, as sink), for orders not on Shipbubble. */
 export const useUpdateShipmentStatus = () => {
   const invalidate = useInvalidateShipments()
   return useMutation({ mutationFn: (input: Parameters<typeof updateShippingStatus>[0]) => (isLive() ? updateShippingStatus(input) : mockDelay(null)), onSuccess: invalidate })

@@ -44,7 +44,7 @@ export const useShippingMethodsCard = () => {
   }
 
   return {
-    methods: (methods.data ?? []).map(method => ({ ...method, feeLabel: method.amount === null ? '—' : formatNaira(method.amount), createdLabel: formatDate(method.createdAt) })),
+    methods: (methods.data ?? []).map(method => ({ ...method, feeLabel: !method.amount ? 'Free' : formatNaira(method.amount), createdLabel: formatDate(method.createdAt) })),
     isLoading: methods.isLoading,
     editor: { isOpen: editing !== undefined, isEditing: Boolean(editing), open: openEditor, close: () => setEditing(undefined), form, submit, saving: saveMethod.isPending },
     remove: { pending: pendingDelete, ask: setPendingDelete, cancel: () => setPendingDelete(null), confirm: confirmDelete, deleting: deleteMethod.isPending },

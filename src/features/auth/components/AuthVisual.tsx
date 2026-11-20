@@ -7,7 +7,7 @@ import { useAuthVisualSlides } from '../hooks/useAuthVisualSlides'
 export function AuthVisual() {
   const { slides, slide, current, goTo } = useAuthVisualSlides()
   return <section className="auth-gradient relative hidden min-h-screen overflow-hidden p-10 text-white lg:flex lg:flex-col">
-    <div className="relative z-10"><Logo inverse/></div>
+    <div className="relative z-10"><Logo inverse className="h-12"/></div>
     <div className="pointer-events-none absolute -right-32 -top-32 h-[430px] w-[430px] rounded-full border-[75px] border-white/[.05]"/>
     <div className="pointer-events-none absolute -bottom-40 -left-28 h-[460px] w-[460px] rounded-full bg-[#80C989]/10 blur-2xl"/>
     <div className="relative z-10 my-auto mx-auto w-full max-w-xl">

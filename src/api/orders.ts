@@ -30,19 +30,23 @@ const paymentPayload = ({ status, method, bankId, amountPaid }: OrderPayment) =>
   ...(status !== 'UNPAID' && method === 'BANK' && bankId ? { bank: bankId } : {}),
   ...(status !== 'UNPAID' && amountPaid ? { amount_paid: amountPaid.toFixed(2) } : {}),
 })
-export type BackendShippingStatus = 'PENDING' | 'SHIPPED' | 'DELIVERED'
+export type BackendShippingStatus = 'PENDING' | 'SHIPPED' | 'DELIVERED' | 'RETURNED'
+/** What sink's ViewOrder sends to PATCH order/change_shipping/{id}/?status= for a manual order. */
+export type ManualShippingStatus = 'PENDING' | 'SHIPPED' | 'DELIVERED' | 'RETURNED'
 
 /** Backend shipping_status → the design's four statuses. Unknown values keep `rawStatus` for the UI. */
 export const toShipmentStatus = (shippingStatus: string, paymentStatus: string): ShipmentStatus => {
   const status = shippingStatus.toUpperCase()
   if (['DELIVERED', 'COMPLETED'].includes(status)) return 'Delivered'
-  if (['SHIPPED', 'IN_TRANSIT', 'IN-TRANSIT', 'PICKED_UP', 'OUT_FOR_DELIVERY'].includes(status)) return 'In transit'
+  if (status === 'RETURNED') return 'Returned'
+  // The backend uses hyphens (PICKED-UP, OUT-FOR-DELIVERY); underscores kept for older data.
+  if (['SHIPPED', 'IN_TRANSIT', 'IN-TRANSIT', 'PICKED_UP', 'PICKED-UP', 'OUT_FOR_DELIVERY', 'OUT-FOR-DELIVERY'].includes(status)) return 'In transit'
   return paymentStatus.toUpperCase() === 'UNPAID' ? 'Pending payment' : 'Awaiting pickup'
 }
 
 /** Design status → backend value for the shipping_status filter. */
 export const toBackendStatus = (status: ShipmentStatus): BackendShippingStatus =>
-  status === 'Delivered' ? 'DELIVERED' : status === 'In transit' ? 'SHIPPED' : 'PENDING'
+  status === 'Delivered' ? 'DELIVERED' : status === 'In transit' ? 'SHIPPED' : status === 'Returned' ? 'RETURNED' : 'PENDING'
 
 const shortId = (id: string) => `SH-${id.replace(/-/g, '').slice(0, 6).toUpperCase()}`
 
@@ -54,6 +58,9 @@ export const mapOrder = (value: unknown): Shipment => {
   const total = num(order.total_price ?? order.amount)
   const destination = [str(at(order, 'delivery.city')), str(at(order, 'delivery.state'))].filter(Boolean).join(', ')
   const carrier = str(at(order, 'delivery.courier_name')) || str(order.courier_name) || str(at(order, 'delivery.courier'))
+  const rawType = (str(at(order, 'delivery.type')) || str(order.delivery_type)).toUpperCase().replace('_', '-')
+  const deliveryType = (['SHIPBUBBLE', 'IN-HOUSE', 'PICKUP'] as const).find(type => type === rawType)
+  const channel = str(order.channel).toUpperCase()
   return {
     id: shortId(id),
     orderId: id,
@@ -61,7 +68,10 @@ export const mapOrder = (value: unknown): Shipment => {
     customerPhone: str(at(order, 'customer_info.phone')),
     customerEmail: str(at(order, 'customer_info.email')),
     destination: destination || str(at(order, 'delivery.shipping_address')) || 'Address on file',
-    carrier: carrier || (str(order.channel).toUpperCase() === 'INSTORE' ? 'In-store' : 'Delivery partner'),
+    carrier: carrier || (channel === 'INSTORE' ? 'In-store' : deliveryType === 'PICKUP' ? 'Customer pickup' : deliveryType === 'IN-HOUSE' ? 'Your delivery' : 'Delivery partner'),
+    deliveryType,
+    channel: channel || undefined,
+    amountPaid: order.amount_paid != null ? num(order.amount_paid) : undefined,
     status: toShipmentStatus(shippingStatus, paymentStatus),
     rawStatus: shippingStatus,
     paymentStatus,
@@ -133,7 +143,7 @@ export const fetchOrderDetails = async (orderId: string): Promise<ShipmentDetail
 
 export const refreshTracking = (orderId: string) => apiRequest<unknown>(`order/track_shipment/${encodeURIComponent(orderId)}/`, { method: 'POST' })
 
-export const updateShippingStatus = ({ orderId, status }: { orderId: string; status: BackendShippingStatus }) =>
+export const updateShippingStatus = ({ orderId, status }: { orderId: string; status: ManualShippingStatus }) =>
   apiRequest<unknown>(`order/change_shipping/${orderId}/?status=${status}`, { method: 'PATCH', body: {} })
 
 // ─── Rates & booking ────────────────────────────────────────────────────────

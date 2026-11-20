@@ -9,6 +9,7 @@ const styles: Record<Tone, string> = {
   'In transit': 'bg-[#E8F0FC] text-[#426AB2]',
   'Awaiting pickup': 'bg-[#FFF4D9] text-[#A16A15]',
   'Pending payment': 'bg-[#F2ECFA] text-[#7852A0]',
+  'Returned': 'bg-[#FDECEA] text-[#C2413A]',
   'Cancelled': 'bg-[#FDECEA] text-[#C2413A]',
 }
 
