@@ -566,7 +566,8 @@ export const useStorefrontSource = () => {
     queryKey: key,
     queryFn: async (): Promise<StorefrontSource> => {
       if (!isLive()) return mockDelay(mockSource, 150)
-      return str((await fetchCurrentBusiness()).raw.storefront_product_source).toUpperCase() === 'VIRTUAL' ? 'VIRTUAL' : 'INVENTORY'
+      const source = str((await fetchCurrentBusiness()).raw.storefront_product_source).toUpperCase()
+      return source === 'INVENTORY' ? 'INVENTORY' : 'VIRTUAL'
     },
     enabled: !isLive() || Boolean(businessId),
   })
@@ -581,5 +582,5 @@ export const useStorefrontSource = () => {
       client.invalidateQueries({ queryKey: queryKeys.business })
     },
   })
-  return { source: query.data ?? 'INVENTORY', isLoading: query.isLoading, setSource: mutation.mutate, isSaving: mutation.isPending }
+  return { source: query.data ?? 'VIRTUAL', isLoading: query.isLoading, setSource: mutation.mutate, isSaving: mutation.isPending }
 }

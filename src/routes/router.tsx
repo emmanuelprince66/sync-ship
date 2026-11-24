@@ -7,7 +7,7 @@ import { GuestOnly, RequireAuth, RequireBusiness, RequirePage, RequirePermission
 import { pages } from './pages'
 import { paths } from './paths'
 
-const { AuthPage, SelectBusinessPage, DashboardPage, ShipmentsPage, CreateShipmentPage, ItemsPage, StorefrontPage, WalletPage, SettingsPage, KycPage, CustomersPage, CustomerDetailPage } = pages
+const { AuthPage, SelectBusinessPage, DashboardPage, ShipmentsPage, CreateShipmentPage, ItemsPage, StorefrontPage, WalletPage, SettingsPage, CustomDomainPage, KycPage, CustomersPage, CustomerDetailPage } = pages
 
 export const router = createBrowserRouter([
   {
@@ -35,6 +35,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <DashboardPage/> },
           { path: paths.items, element: <ItemsPage/> },
+          { path: paths.customDomain, element: <CustomDomainPage/> },
           { path: paths.shipments, element: <ShipmentsPage/> },
           { path: paths.tracking, element: <ShipmentsPage tracking/> },
           { path: paths.customers, element: <CustomersPage/> },

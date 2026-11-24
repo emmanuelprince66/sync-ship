@@ -1,4 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react'
+import { useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import { errorMessage } from '@/api/auth'
 import { BILLING_PERIODS, SHIP_PLAN_FEATURES, SHIP_UNLIMITED_FEATURES, matchPlan, useActivePlan, useBranchSubscription, usePlans, useSubscribe, type BillingPeriod, type Plan } from '@/api/plan'
@@ -46,6 +47,8 @@ function Usage({ label, used, limit, loading }: { label: string; used: number | 
 
 /** Settings → Plan & billing: the current plan as sink's Premium screen shows it, every tier side by side, and upgrading. */
 export function PlanSection() {
+  const [searchParams] = useSearchParams()
+  const customDomainUpgrade = searchParams.get('upgrade') === 'custom-domain'
   const plans = usePlans()
   const active = useActivePlan()
   const branch = useBranchSubscription()
@@ -57,6 +60,12 @@ export function PlanSection() {
   const billing = BILLING_PERIODS.find(item => item.value === period) ?? BILLING_PERIODS[0]
   const current = active.data
   const summary = current?.summary
+  const allPlans = plans.data ?? []
+  const plusIndex = allPlans.findIndex(plan => plan.name.toLowerCase().replace(/[^a-z0-9]/g, '') === 'syncplus')
+  const upgradePlans = plusIndex >= 0
+    ? allPlans.slice(plusIndex)
+    : allPlans.filter(plan => plan.limits.custom_domain === true || (typeof plan.limits.custom_domain === 'number' && plan.limits.custom_domain > 0))
+  const visiblePlans = customDomainUpgrade ? upgradePlans : allPlans
   // active_plan carries no plan name: only a tier matched by its limits names it.
   const planName = current ? matchPlan(current, plans.data ?? [])?.name ?? '' : ''
   const loading = active.isLoading
@@ -117,10 +126,12 @@ export function PlanSection() {
         <div><div className="text-sm font-black text-[#17382C]">Plans</div><div className="mt-0.5 text-[10px] text-[#84938C]">Pick a billing period, then choose a plan to pay securely.</div></div>
         <div className="flex max-w-full gap-1 overflow-x-auto rounded-xl bg-[#EAF1EC] p-1 [scrollbar-width:none]" role="tablist" aria-label="Billing period">{BILLING_PERIODS.map(item => <button key={item.value} type="button" role="tab" aria-selected={period === item.value} onClick={() => setPeriod(item.value)} className={cn('shrink-0 rounded-lg px-3 py-2 text-xs font-extrabold transition sm:px-4', period === item.value ? 'bg-white text-[#09261C] shadow-sm' : 'text-[#718279]')}>{item.label}</button>)}</div>
       </div>
+      {customDomainUpgrade && <p className="mt-3 rounded-xl bg-[#F4F8F5] p-3 text-[10px] text-[#687A71]">Choose a Sync Plus plan or higher to unlock your custom domain.</p>}
       {!isSuperAdmin && <p className="mt-3 rounded-xl bg-[#F4F8F5] p-3 text-[10px] text-[#687A71]">Only the business owner or an admin can change the plan.</p>}
       {plans.isError ? <div className="mt-4"><LoadError label="the plans" onRetry={() => void plans.refetch()}/></div>
         : plans.isLoading ? <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-2 xl:grid-cols-3">{Array.from({ length: 3 }, (_, index) => <Skeleton key={index} className="h-72 rounded-2xl"/>)}</div>
-          : <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-2 xl:grid-cols-3">{(plans.data ?? []).map(plan => {
+          : visiblePlans.length === 0 ? <div className="mt-4 rounded-2xl border border-dashed border-[#C9D8CF] p-6 text-center text-xs text-[#7D8E85]">No plans with custom domains are currently available.</div>
+          : <div className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-3 md:grid-cols-2 xl:grid-cols-3">{visiblePlans.map(plan => {
             const isCurrent = Boolean(planName) && plan.name.toLowerCase() === planName.toLowerCase()
             const price = plan.prices[billing.priceKey] ?? 0
             const ownPlan = isCurrent && !branch.locked

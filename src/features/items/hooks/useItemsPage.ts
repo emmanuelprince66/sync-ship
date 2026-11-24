@@ -90,11 +90,9 @@ export function useItemsPage() {
     onSettled: () => markSaving(key, false),
     onSuccess: saved => {
       if (saved.listed === false) return toast.success(`${saved.name} is hidden from your storefront`)
-      // Listed items only show online when the store serves these items rather than inventory.
       if (storefront.source !== 'VIRTUAL') {
-        return toast.info(`${saved.name} is listed, but your storefront currently shows your inventory.`, {
-          description: 'Switch “Store shows” to These items so customers can buy it online.',
-          action: { label: 'Show these items', onClick: () => changeSource('VIRTUAL') },
+        return toast.info(`${saved.name} is listed, but your storefront is showing inventory products.`, {
+          description: 'Turn on “Show these items in your storefront” to display it online.',
         })
       }
       toast.success(`${saved.name} is on your storefront`)
@@ -140,7 +138,6 @@ export function useItemsPage() {
     closeDeleteItem: () => setDeleteItem(null),
     storefrontSource: storefront.source,
     storefrontSourceBusy: storefront.isLoading || storefront.isSaving,
-    showSourceNotice: canManageItems && !storefront.isLoading && storefront.source === 'INVENTORY',
     changeSource,
     editItem,
     openEditPrice: setEditItem,

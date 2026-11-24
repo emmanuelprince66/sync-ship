@@ -17,6 +17,7 @@ export const paths = {
   withdraw: '/wallet/withdraw',
   walletTransactions: '/wallet/transactions',
   settings: '/settings',
+  customDomain: '/custom-domain',
   kyc: '/kyc',
   storefront: '/storefront',
   customers: '/customers',
@@ -42,3 +43,9 @@ export const sectionFromSlug = (slug: string | undefined): SettingsSection =>
 
 /** Settings → Plan & billing, where every plan gate links to. */
 export const planPath = () => settingsPath('Plan & billing')
+
+/** Billing plans that include a custom domain, opened from domain upgrade prompts. */
+export const customDomainUpgradePath = () => `${planPath()}?upgrade=custom-domain`
+
+/** Custom-domain information and setup guide. */
+export const customDomainInfoPath = () => paths.customDomain

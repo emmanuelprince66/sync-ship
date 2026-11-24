@@ -44,7 +44,7 @@ export function ItemCard({ item, onToggleAvailable, onToggleListed, onEditPrice,
       {canManage
         ? <button type="button" onClick={() => onEdit(item)} className="block w-full truncate text-left text-xs font-extrabold text-[#28483B] hover:text-[#438352]">{item.name}</button>
         : <div className="truncate text-xs font-extrabold text-[#28483B]">{item.name}</div>}
-      {item.description && <p className="mt-1 truncate text-[10px] text-[#899890]">{item.description}</p>}
+      {item.description && <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-[#899890]">{item.description}</p>}
       {item.sku && <p className="mt-1 truncate text-[10px] font-semibold text-[#7C8D85]">SKU {item.sku}</p>}
       <div className="mt-1.5 flex items-center justify-between">
         <span className="text-[10px] font-semibold text-[#829189]" title={Number(item.weight) ? undefined : 'Uses your default package weight'}>{Number(item.weight) ? `${item.weight} kg` : 'Default weight'}</span>

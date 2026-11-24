@@ -1,12 +1,18 @@
+import { useState } from 'react'
+import { useNavigate } from 'react-router'
 import { Button } from '@/components/ui/Button'
 import { Icon } from '@/components/ui/Icon'
+import { CustomDomainUpgradeModal } from '@/components/ui/CustomDomainUpgradeModal'
 import { Skeleton, StatCardSkeleton } from '@/components/ui/Skeleton'
 import { StatCard } from '@/components/ui/StatCard'
 import { OrderDrawer, ShipmentTable } from '@/features/shipments'
+import { customDomainInfoPath } from '@/routes/paths'
 import { useDashboard } from './hooks/useDashboard'
 
 export default function DashboardPage() {
   const dashboard = useDashboard()
+  const navigate = useNavigate()
+  const [upgradePromptOpen, setUpgradePromptOpen] = useState(true)
   return <div className="space-y-6">
     <section className="relative overflow-hidden rounded-[22px] bg-[#09261C] px-7 py-7 text-white md:px-9">
       <div className="pointer-events-none absolute -right-14 -top-24 h-72 w-72 rounded-full border-[50px] border-[#529661]/20"/>
@@ -47,5 +53,6 @@ export default function DashboardPage() {
       </div>
     </section>
     <OrderDrawer shipment={dashboard.drawer.selected} onClose={dashboard.drawer.close} onDownloadReceipt={dashboard.drawer.downloadReceipt} onTrack={dashboard.drawer.trackLive}/>
+    <CustomDomainUpgradeModal open={upgradePromptOpen} onClose={() => setUpgradePromptOpen(false)} onUpgrade={() => navigate(customDomainInfoPath())}/>
   </div>
 }

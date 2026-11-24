@@ -27,7 +27,7 @@ export function AuthLayout({ setupStep, heading, subtitle, centered = false, chi
         </div>}
         <div className={cn(centered && 'text-center')}><h1 className="text-[28px] font-black tracking-[-.8px] text-[#09261C]">{heading}</h1><div className="mt-2 text-sm leading-6 text-[#74857C]">{subtitle}</div></div>
         {children}
-        <div className="mt-8 text-center text-[10px] leading-5 text-[#96A39D]">By continuing, you agree to SyncShip’s Terms of Service and Privacy Policy.</div>
+        <div className="mt-8 text-center text-[10px] leading-5 text-[#96A39D]">By continuing, you agree to SyncGo’s Terms of Service and Privacy Policy.</div>
       </div>
     </main>
   </div>

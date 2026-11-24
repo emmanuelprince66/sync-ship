@@ -12,7 +12,7 @@ export function AuthVisual() {
     <div className="pointer-events-none absolute -bottom-40 -left-28 h-[460px] w-[460px] rounded-full bg-[#80C989]/10 blur-2xl"/>
     <div className="relative z-10 my-auto mx-auto w-full max-w-xl">
       <div className="mb-9">
-        <div className="text-[11px] font-extrabold uppercase tracking-[.18em] text-[#BDE9B8]">Move smarter with SyncShip</div>
+        <div className="text-[11px] font-extrabold uppercase tracking-[.18em] text-[#BDE9B8]">Move smarter with SyncGo</div>
         <div className="mt-4 max-w-lg text-[38px] font-black leading-[1.08] tracking-[-1.5px]">Move your products, without the logistics headache.</div>
       </div>
       <div className="relative h-[290px] overflow-hidden rounded-[30px] border border-white/10 bg-white/[.08] p-7 backdrop-blur-md">
