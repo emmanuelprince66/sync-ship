@@ -253,7 +253,9 @@ export function useCreateShipmentWizard() {
     setValue('customer.city', address?.city ?? '', touch)
     const state = matchState(address?.state ?? '')
     if (state) setValue('customer.state', state, touch)
-    clearPin()
+    // The saved point comes along when the customer has one (sink trusts it only as a pair).
+    setValue('customer.latitude', address?.latitude && address.longitude ? address.latitude : '')
+    setValue('customer.longitude', address?.latitude && address.longitude ? address.longitude : '')
   }
 
   /** sink's applyAddressSuggestion: the street line, city and state from the pick, and its coordinates pinned. */

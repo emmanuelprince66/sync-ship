@@ -1,4 +1,5 @@
 import type { Customer } from '@/api/customers'
+import { AddressAutocomplete } from '@/features/settings/components/shipping/AddressAutocomplete'
 import { Button } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
 import { Icon } from '@/components/ui/Icon'
@@ -45,10 +46,10 @@ function CustomerForm({ customer, onClose }: Omit<Props, 'open'>) {
         </div>
 
         <div className="mt-1 text-[10px] font-extrabold uppercase tracking-[.08em] text-[#899891]">Address (optional)</div>
-        <Field label="Street address" placeholder="e.g. 22 Awolowo Road" autoComplete="off" error={errors.address?.message} {...register('address')}/>
+        <AddressAutocomplete label="Street address" placeholder="Start typing the address, e.g. 22 Awolowo Road" hint="Pick a suggestion to fill the state and city." error={errors.address?.message} value={form.addressField.value} onChange={form.addressField.onChange} onSelect={form.addressField.onSelect} hasCoordinates={form.addressField.isPinned}/>
         <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
-          <Select label="State" placeholder="Select state" options={form.stateOptions} error={errors.state?.message} {...register('state')}/>
-          <Field label="City" placeholder="e.g. Ikeja" autoComplete="off" error={errors.city?.message} {...register('city')}/>
+          <Select label="State" placeholder="Select state" options={form.stateOptions} error={errors.state?.message} {...form.registerLocation('state')}/>
+          <Field label="City" placeholder="e.g. Ikeja" autoComplete="off" error={errors.city?.message} {...form.registerLocation('city')}/>
         </div>
         {form.isEditing && <Field label="Address phone" type="tel" placeholder="Delivery contact number" error={errors.addressPhone?.message} {...register('addressPhone')}/>}
 
