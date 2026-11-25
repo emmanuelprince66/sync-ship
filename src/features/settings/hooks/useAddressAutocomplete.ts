@@ -1,11 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import { useDebounce } from '@/hooks/useDebounce'
 import { useDismiss } from '@/hooks/useDismiss'
-import { fetchAddressSuggestions, type AddressSuggestion } from '@/lib/address'
+import { fetchAddressSuggestions, type AddressSuggestion, type Coordinates } from '@/lib/address'
 
-/** What a picked suggestion reads as in the field: its own line(s), minus the trailing country. */
-const pickedText = (suggestion: AddressSuggestion) =>
-  (suggestion.secondary ? `${suggestion.address}, ${suggestion.secondary}` : suggestion.label || suggestion.address).replace(/,\s*Nigeria\s*$/i, '').trim()
+/**
+ * What a picked suggestion reads as in the field: the same text the dropdown row showed (street, then
+ * area), minus the trailing country. Not Geoapify's `formatted` label first: that can lead with a nearby
+ * landmark ("WhiteVille Hotel…, Akala Expressway"), which isn't what the person picked.
+ */
+const pickedText = (suggestion: AddressSuggestion) => {
+  const area = suggestion.secondary || [suggestion.city, suggestion.state].filter(Boolean).join(', ')
+  const text = suggestion.address ? [suggestion.address, area].filter(Boolean).join(', ') : suggestion.label
+  return text.replace(/,\s*Nigeria\s*$/i, '').trim()
+}
 
 /**
  * sink-inventory's AddressAutocomplete logic: debounced search (350ms, 3+ characters),
@@ -13,11 +20,13 @@ const pickedText = (suggestion: AddressSuggestion) =>
  * shows once a search has genuinely come back empty. Geoapify returns coordinates
  * with every suggestion, so a pick needs no second lookup.
  */
-export const useAddressAutocomplete = ({ value, onChange, onSelect, disabled }: {
+export const useAddressAutocomplete = ({ value, onChange, onSelect, disabled, proximity }: {
   value: string
   onChange: (value: string) => void
   onSelect: (suggestion: AddressSuggestion) => void
   disabled?: boolean
+  /** Ranks results near this point (sink biases toward the merchant's pickup address). */
+  proximity?: Coordinates | null
 }) => {
   const [query, setQuery] = useState(value)
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([])
@@ -44,7 +53,7 @@ export const useAddressAutocomplete = ({ value, onChange, onSelect, disabled }: 
   useEffect(() => {
     if (!shouldSearch) return
     let ignore = false
-    fetchAddressSuggestions(debouncedQuery, { limit: 6 })
+    fetchAddressSuggestions(debouncedQuery, { limit: 6, proximity })
       .then(res => {
         if (ignore) return
         if (res.disabled) { setLookupDisabled(true); setSuggestions([]); setIsOpen(false); return }
@@ -55,6 +64,8 @@ export const useAddressAutocomplete = ({ value, onChange, onSelect, disabled }: 
       .catch(() => { if (!ignore) { setSuggestions([]); setIsOpen(false) } })
       .finally(() => { if (!ignore) setIsSearching(false) })
     return () => { ignore = true }
+    // proximity is read once per search; a change in it alone shouldn't search again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedQuery, shouldSearch])
 
   useDismiss(containerRef, isOpen, () => setIsOpen(false))

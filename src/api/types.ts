@@ -104,6 +104,9 @@ export type CustomerDetails = {
   /** Live: Shipbubble needs email, state (full name, e.g. "Lagos") and optionally city. */
   email?: string
   state?: string
+  /** From a picked address suggestion; the city centre is used when absent. */
+  latitude?: string
+  longitude?: string
   city?: string
 }
 

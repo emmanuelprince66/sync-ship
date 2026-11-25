@@ -3,6 +3,7 @@ import { Field } from '@/components/ui/Field'
 import { Icon, type IconName } from '@/components/ui/Icon'
 import { SelectField } from '@/components/ui/SelectField'
 import { CustomerPickerModal } from '@/features/customers'
+import { AddressAutocomplete } from '@/features/settings/components/shipping/AddressAutocomplete'
 import { cn } from '@/lib/cn'
 import { formatNaira } from '@/lib/format'
 import type { CreateShipmentWizard } from '../../hooks/useCreateShipmentWizard'
@@ -14,7 +15,7 @@ const options: { id: CheckoutMethod; icon: IconName; title: string; text: string
 ]
 
 export function CheckoutMethodStep({ wizard }: { wizard: CreateShipmentWizard }) {
-  const { method, setMethod, register, errors, total, stateOptions, hasStoreLink, pickup, showStoreItemsNote, customerPicker, pickCustomer } = wizard
+  const { method, setMethod, register, errors, total, stateOptions, hasStoreLink, pickup, showStoreItemsNote, customerPicker, pickCustomer, deliveryAddress, registerLocation } = wizard
   return <div>
     <div className="mb-6"><div className="text-lg font-black text-[#0F3124]">Who will complete checkout?</div><div className="mt-1 text-xs text-[#7E8E86]">Choose how you want to confirm the address and delivery payment.</div></div>
     <div className="grid gap-4 md:grid-cols-2" role="radiogroup" aria-label="Checkout method">
@@ -33,9 +34,10 @@ export function CheckoutMethodStep({ wizard }: { wizard: CreateShipmentWizard })
         <Field label="Customer name" autoComplete="name" error={errors.customer?.name?.message} {...register('customer.name')}/>
         <Field label="Phone number" type="tel" autoComplete="tel" error={errors.customer?.phone?.message} {...register('customer.phone')}/>
         <div className="md:col-span-2"><Field label="Email address" type="email" autoComplete="email" placeholder="customer@email.com" hint="Delivery partners send tracking updates here" error={errors.customer?.email?.message} {...register('customer.email')}/></div>
-        <div className="md:col-span-2"><Field label="Delivery address" autoComplete="street-address" error={errors.customer?.address?.message} {...register('customer.address')}/></div>
-        <Field label="City (optional)" autoComplete="address-level2" placeholder="e.g. Lekki" {...register('customer.city')}/>
-        <SelectField label="State" options={stateOptions} {...register('customer.state')}/>
+        {/* Searching fills City and State below and pins the location, so it comes first (as in sink). */}
+        <div className="md:col-span-2"><AddressAutocomplete label="Delivery address" placeholder="Start typing the delivery address..." hint="Pick a suggestion to fill the city and state." error={errors.customer?.address?.message} {...deliveryAddress}/></div>
+        <Field label="City (optional)" autoComplete="address-level2" placeholder="e.g. Lekki" {...registerLocation('customer.city')}/>
+        <SelectField label="State" options={stateOptions} {...registerLocation('customer.state')}/>
       </div>
       <div className="mt-4 flex items-start gap-2 rounded-xl bg-[#EAF5E9] p-3 text-[11px] leading-5 text-[#52705B]"><Icon name="building" size={16}/><span>Pickup address: <strong className="text-[#294C37]">{pickup.full}</strong> — from your business settings.</span></div>
       <CustomerPickerModal open={customerPicker.isOpen} onClose={customerPicker.close} onPick={pickCustomer}/>

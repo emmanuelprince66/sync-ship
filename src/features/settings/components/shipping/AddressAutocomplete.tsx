@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Icon } from '@/components/ui/Icon'
-import type { AddressSuggestion } from '@/lib/address'
+import { cn } from '@/lib/cn'
+import type { AddressSuggestion, Coordinates } from '@/lib/address'
 import { useAddressAutocomplete } from '../../hooks/useAddressAutocomplete'
 
 type AddressAutocompleteProps = {
@@ -14,14 +15,21 @@ type AddressAutocompleteProps = {
   hasCoordinates?: boolean
   /** Rendered once a completed search returned nothing (the GPS fallback). */
   renderNoResults?: () => ReactNode
+  /** In a form: the label above, and an error or hint below (as Field). */
+  label?: string
+  hint?: string
+  error?: string
+  /** Ranks suggestions near this point. */
+  proximity?: Coordinates | null
 }
 
 /** Address search with a suggestion dropdown — sink-inventory's AddressAutocomplete in the SyncShip style. */
-export function AddressAutocomplete({ value, onChange, onSelect, placeholder = 'Start typing an address...', hasCoordinates = false, renderNoResults }: AddressAutocompleteProps) {
-  const { containerRef, ...field } = useAddressAutocomplete({ value, onChange, onSelect })
+export function AddressAutocomplete({ value, onChange, onSelect, placeholder = 'Start typing an address...', hasCoordinates = false, renderNoResults, label, hint, error, proximity }: AddressAutocompleteProps) {
+  const { containerRef, ...field } = useAddressAutocomplete({ value, onChange, onSelect, proximity })
 
   return <div ref={containerRef} className="relative w-full">
-    <span className="flex h-12 items-center gap-2 rounded-xl border border-[#DCE7E0] bg-white px-3.5 transition focus-within:border-[#529661] focus-within:ring-4 focus-within:ring-[#529661]/10">
+    {label && <span className="mb-2 block text-[12px] font-extrabold text-[#34483F]">{label}</span>}
+    <span className={cn('flex h-12 items-center gap-2 rounded-xl border border-[#DCE7E0] bg-white px-3.5 transition focus-within:border-[#529661] focus-within:ring-4 focus-within:ring-[#529661]/10', error && 'border-[#E65A4F] focus-within:border-[#E65A4F] focus-within:ring-[#E65A4F]/10')}>
       <span className={hasCoordinates && !field.isBusy ? 'text-[#438352]' : 'text-[#9AABA3]'}>
         {field.isBusy ? <span className="block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden="true"/> : <Icon name={hasCoordinates ? 'check' : 'search'} size={16}/>}
       </span>
@@ -34,6 +42,8 @@ export function AddressAutocomplete({ value, onChange, onSelect, placeholder = '
         role="combobox"
         aria-expanded={field.isOpen}
         aria-autocomplete="list"
+        aria-label={label}
+        aria-invalid={error ? true : undefined}
         className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-[#09261C] outline-none placeholder:font-medium placeholder:text-[#9AABA3]"
       />
     </span>
@@ -47,6 +57,9 @@ export function AddressAutocomplete({ value, onChange, onSelect, placeholder = '
       </li>)}
     </ul>}
 
+    {error
+      ? <span role="alert" className="mt-1.5 block text-[11px] font-semibold text-[#D15B50]">{error}</span>
+      : hint && <span className="mt-1.5 block text-[11px] text-[#7C8D85]">{field.lookupDisabled ? 'Type the full address.' : hint}</span>}
     {renderNoResults && field.noResults && !hasCoordinates && renderNoResults()}
   </div>
 }

@@ -12,6 +12,7 @@
  *  GET   order/shipping_dimention/  ·  GET order/shipping_category/
  */
 import { apiRequest } from '@/lib/api-client'
+import { centroidByStateName } from '@/lib/address'
 import { formatNaira } from '@/lib/format'
 import { requireBusinessId } from './business'
 import { asRecord, at, formatActivityDate, listFrom, num, str } from './http'
@@ -186,9 +187,15 @@ const tagRates = (rates: DeliveryPartner[]) => {
   return rates.map(rate => ({ ...rate, tag: rate.id === cheapest.id ? 'Best value' : rate.id === rates[0].id ? 'Fastest' : '' }))
 }
 
-/** Delivery address body shared by fetch_shipment_rate and create_order_inhouse (sink's buildAddressPayload). */
+/**
+ * Delivery address body shared by fetch_shipment_rate and create_order_inhouse (sink's buildAddressPayload).
+ * Coordinates: the pinned ones, else the city/state centre (kilometre-level, enough for Shipbubble's
+ * serviceability and zone pricing). Left out entirely when neither resolves: the API won't take null.
+ */
 const addressPayload = (customer: RateRequestInput['customer']) => {
   const { first, last } = splitName(customer.name)
+  const pinned = customer.latitude && customer.longitude ? { latitude: customer.latitude, longitude: customer.longitude } : null
+  const coords = pinned ?? centroidByStateName(customer.state, customer.city)
   return {
     first_name: sanitize(first),
     last_name: sanitize(last),
@@ -199,6 +206,7 @@ const addressPayload = (customer: RateRequestInput['customer']) => {
     state: customer.state,
     city: customer.city ? sanitize(customer.city) : null,
     shipping_address: sanitize(customer.address),
+    ...(coords ? { latitude: coords.latitude, longitude: coords.longitude } : {}),
   }
 }
 

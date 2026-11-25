@@ -17,6 +17,7 @@ import { useClipboard } from '@/hooks/useClipboard'
 import { useDisclosure } from '@/hooks/useDisclosure'
 import { usePermissions } from '@/hooks/usePermissions'
 import { paths, settingsPath } from '@/routes/paths'
+import type { AddressSuggestion } from '@/lib/address'
 import { NIGERIAN_STATES } from '../constants'
 import { emptyPackageItem, MAX_ITEM_QUANTITY, shipmentFormDefaults, shipmentFormSchema, type PackageItemValues, type PaymentMethodValue, type PaymentStatusValue, type ShipmentFormValues } from '../schemas'
 import { shortAddress } from '../utils'
@@ -50,6 +51,14 @@ export const PAYMENT_METHOD_OPTIONS: { value: PaymentMethodValue; label: string;
   { value: 'BANK', label: 'Bank transfer', icon: 'bank' },
   { value: 'CASH', label: 'Cash', icon: 'wallet' },
 ]
+
+/** A state name from an address or a saved customer → the State list's own name ("Oyo State" → "Oyo", "Abuja"/"FCT" → "Federal Capital Territory"). */
+const matchState = (name: string) => {
+  const bare = name.replace(/\s+state$/i, '').trim().toLowerCase()
+  if (!bare) return ''
+  if (['fct', 'abuja', 'federal capital territory'].includes(bare)) return 'Federal Capital Territory'
+  return (NIGERIAN_STATES as readonly string[]).find(item => item.toLowerCase() === bare) ?? ''
+}
 
 export function useCreateShipmentWizard() {
   const navigate = useNavigate()
@@ -229,12 +238,32 @@ export function useCreateShipmentWizard() {
     setStep(current => (current + 1) as WizardStep)
   }
 
-  /** Prefills the delivery details from a saved customer; fields the record doesn't have keep what was typed. */
+  const touch = { shouldDirty: true, shouldValidate: true } as const
+  const clearPin = () => { setValue('customer.latitude', ''); setValue('customer.longitude', '') }
+
+  /**
+   * sink's customer pick: name, phone and email from the profile when it has them; the delivery address,
+   * city and state from the customer's saved (default) address, or emptied when there is none, so the
+   * address is searched for. Still editable afterwards: an order can go somewhere else.
+   */
   const pickCustomer = (saved: Customer) => {
     const address = saved.address
-    const state = (NIGERIAN_STATES as readonly string[]).find(item => item.toLowerCase() === address?.state.toLowerCase())
-    const fill = { name: saved.name, phone: saved.phone, email: saved.email, address: address?.address ?? '', city: address?.city ?? '', state: state ?? '' }
-    for (const [key, value] of Object.entries(fill) as [keyof typeof fill, string][]) if (value) setValue(`customer.${key}`, value, { shouldDirty: true, shouldValidate: true })
+    for (const [key, value] of [['name', saved.name], ['phone', saved.phone], ['email', saved.email]] as const) if (value) setValue(`customer.${key}`, value, touch)
+    setValue('customer.address', address?.address ?? '', touch)
+    setValue('customer.city', address?.city ?? '', touch)
+    const state = matchState(address?.state ?? '')
+    if (state) setValue('customer.state', state, touch)
+    clearPin()
+  }
+
+  /** sink's applyAddressSuggestion: the street line, city and state from the pick, and its coordinates pinned. */
+  const pickAddress = (suggestion: AddressSuggestion) => {
+    setValue('customer.address', suggestion.address || suggestion.label, touch)
+    if (suggestion.city) setValue('customer.city', suggestion.city, touch)
+    const state = matchState(suggestion.state)
+    if (state) setValue('customer.state', state, touch)
+    setValue('customer.latitude', suggestion.latitude)
+    setValue('customer.longitude', suggestion.longitude)
   }
 
   const close = () => navigate(paths.dashboard)
@@ -329,6 +358,17 @@ export function useCreateShipmentWizard() {
     pickup,
     customer,
     stateOptions: NIGERIAN_STATES,
+    /** Delivery address search (sink's AddressAutocomplete), biased toward the Shipbubble pickup point. */
+    deliveryAddress: {
+      value: customer.address,
+      hasCoordinates: Boolean(customer.latitude && customer.longitude),
+      proximity: shipbubble.data?.settings.latitude && shipbubble.data.settings.longitude ? { latitude: shipbubble.data.settings.latitude, longitude: shipbubble.data.settings.longitude } : null,
+      // Typing over the address drops the pinned point: a rider shouldn't go to the address that was replaced.
+      onChange: (value: string) => { setValue('customer.address', value, { shouldDirty: true, shouldValidate: Boolean(errors.customer?.address) }); clearPin() },
+      onSelect: pickAddress,
+    },
+    /** City and state edited by hand also drop the pinned point (the city centre is used instead). */
+    registerLocation: (name: 'customer.city' | 'customer.state') => register(name, { onChange: clearPin }),
     customerPicker,
     pickCustomer,
     // Delivery rate step

@@ -23,6 +23,9 @@ const customerSchema = z.object({
   email: z.string(),
   state: z.string(),
   city: z.string(),
+  /** Pinned by a picked suggestion; cleared when the address, city or state is edited by hand. */
+  latitude: z.string(),
+  longitude: z.string(),
 })
 
 /** What the customer has already paid — the same fields as sink-inventory's order form. */
@@ -71,7 +74,7 @@ const today = () => new Date().toISOString().slice(0, 10)
 export const shipmentFormDefaults = (): ShipmentFormValues => ({
   products: [],
   method: 'merchant',
-  customer: { name: '', phone: '', address: '', email: '', state: DEFAULT_STATE, city: '' },
+  customer: { name: '', phone: '', address: '', email: '', state: DEFAULT_STATE, city: '', latitude: '', longitude: '' },
   partnerId: 1,
   payment: { status: 'UNPAID', method: 'BANK', bankId: '', amountPaid: '' },
   shippingDate: today(),
