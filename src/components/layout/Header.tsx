@@ -1,6 +1,7 @@
 import { Icon } from '@/components/ui/Icon'
 import { cn } from '@/lib/cn'
 import { useMobileSidebar, useTopBar } from './hooks'
+import { InstallAppButton } from '@/components/pwa/InstallPrompt'
 import { ProfileMenu } from './ProfileMenu'
 
 /** Top bar, modelled on sink-inventory's TopBar: greeting + business, notifications, profile menu. */
@@ -25,6 +26,8 @@ export function Header() {
         <div className="hidden truncate text-[11px] font-semibold text-[#87968F] sm:block">{bar.businessName ? `Managing ${bar.businessName}` : 'Dashboard overview'} · {bar.date}</div>
       </div>
       <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
+        {/* Phones: icon only, so the greeting keeps its room. */}
+        <InstallAppButton className="max-sm:w-10 max-sm:justify-center max-sm:px-0 max-sm:[&>span]:sr-only"/>
         <button type="button" aria-label={bar.unread > 0 ? `Notifications (${bar.unread} unread)` : 'Notifications'} className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#E1E9E4] bg-white text-[#53645C] transition-colors hover:bg-[#F3F7F4]">
           <Icon name="bell" size={18}/>
           {bar.unread > 0 && <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-[#E65A4F] px-1 text-[9px] font-extrabold text-white">{bar.unread > 99 ? '99+' : bar.unread}</span>}
