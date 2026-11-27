@@ -18,6 +18,7 @@ const loaders = {
   kyc: () => import('@/features/kyc/KycPage'),
   customers: () => import('@/features/customers/CustomersPage'),
   customerDetail: () => import('@/features/customers/CustomerDetailPage'),
+  notifications: () => import('@/features/notifications/NotificationsPage'),
 }
 
 export const pages = {
@@ -34,6 +35,7 @@ export const pages = {
   KycPage: lazy(loaders.kyc),
   CustomersPage: lazy(loaders.customers),
   CustomerDetailPage: lazy(loaders.customerDetail),
+  NotificationsPage: lazy(loaders.notifications),
 }
 
 /** Downloads the app's pages in the background, ignoring failures, so navigating never waits on code. */

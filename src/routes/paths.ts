@@ -21,6 +21,7 @@ export const paths = {
   kyc: '/kyc',
   storefront: '/storefront',
   customers: '/customers',
+  notifications: '/notifications',
 } as const
 
 /** A customer's profile page, e.g. /customers/abc123. */

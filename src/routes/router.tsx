@@ -7,7 +7,7 @@ import { GuestOnly, RequireAuth, RequireBusiness, RequirePage, RequirePermission
 import { pages } from './pages'
 import { paths } from './paths'
 
-const { AuthPage, SelectBusinessPage, DashboardPage, ShipmentsPage, CreateShipmentPage, ItemsPage, StorefrontPage, WalletPage, SettingsPage, CustomDomainPage, KycPage, CustomersPage, CustomerDetailPage } = pages
+const { AuthPage, SelectBusinessPage, DashboardPage, ShipmentsPage, CreateShipmentPage, ItemsPage, StorefrontPage, WalletPage, SettingsPage, CustomDomainPage, KycPage, CustomersPage, CustomerDetailPage, NotificationsPage } = pages
 
 export const router = createBrowserRouter([
   {
@@ -41,6 +41,7 @@ export const router = createBrowserRouter([
           { path: paths.customers, element: <CustomersPage/> },
           { path: `${paths.customers}/:customerId`, element: <CustomerDetailPage/> },
           { path: paths.wallet, element: <WalletPage/> },
+          { path: paths.notifications, element: <NotificationsPage/> },
           // Old wallet sub-pages now open modals on the wallet page (sink keeps it all on one screen).
           { path: paths.fundWallet, element: <Navigate to={`${paths.wallet}?action=fund`} replace/> },
           { path: paths.withdraw, element: <Navigate to={`${paths.wallet}?action=transfer`} replace/> },

@@ -1,5 +1,7 @@
+import { Link } from 'react-router'
 import { Icon } from '@/components/ui/Icon'
 import { cn } from '@/lib/cn'
+import { paths } from '@/routes/paths'
 import { useMobileSidebar, useTopBar } from './hooks'
 import { InstallAppButton } from '@/components/pwa/InstallPrompt'
 import { ProfileMenu } from './ProfileMenu'
@@ -28,10 +30,11 @@ export function Header() {
       <div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
         {/* Phones: icon only, so the greeting keeps its room. */}
         <InstallAppButton className="max-sm:w-10 max-sm:justify-center max-sm:px-0 max-sm:[&>span]:sr-only"/>
-        <button type="button" aria-label={bar.unread > 0 ? `Notifications (${bar.unread} unread)` : 'Notifications'} className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#E1E9E4] bg-white text-[#53645C] transition-colors hover:bg-[#F3F7F4]">
+        {/* As in sink: the bell opens the Notifications page. */}
+        <Link to={paths.notifications} aria-label={bar.unread > 0 ? `Notifications (${bar.unread} unread)` : 'Notifications'} className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#E1E9E4] bg-white text-[#53645C] transition-colors hover:bg-[#F3F7F4]">
           <Icon name="bell" size={18}/>
           {bar.unread > 0 && <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-[#E65A4F] px-1 text-[9px] font-extrabold text-white">{bar.unread > 99 ? '99+' : bar.unread}</span>}
-        </button>
+        </Link>
         <div className="hidden h-7 w-px bg-[#E4EBE7] sm:block" aria-hidden="true"/>
         <ProfileMenu/>
       </div>
