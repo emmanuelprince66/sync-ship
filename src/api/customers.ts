@@ -142,7 +142,7 @@ const mockMatches = (search: string, status: string) => {
 
 // ─── List ───────────────────────────────────────────────────────────────────
 
-type ListParams = { page: number; limit: number; search: string; status: string }
+type ListParams = { page: number; limit: number; search: string; status: string; startDate?: string; endDate?: string }
 
 const getMockCustomers = ({ page, limit, search, status }: ListParams): Promise<CustomersResult> => {
   const matches = mockMatches(search, status)
@@ -156,10 +156,12 @@ const getMockCustomers = ({ page, limit, search, status }: ListParams): Promise<
   })
 }
 
-const getCustomers = async (businessId: string, { page, limit, search, status }: ListParams): Promise<CustomersResult> => {
+const getCustomers = async (businessId: string, { page, limit, search, status, startDate, endDate }: ListParams): Promise<CustomersResult> => {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) })
   if (search) params.set('search', search)
   if (status) params.set('status', status)
+  if (startDate) params.set('start_date', startDate)
+  if (endDate) params.set('end_date', endDate)
   const response = await apiRequest<unknown>(`customer/${businessId}/?${params.toString()}`)
   const customers = listFrom(response, ['results.data', 'data.results.data', 'results', 'data']).map(mapCustomer)
   const total = num(at(response, 'total')) || num(at(response, 'results.customer_count')) || customers.length
@@ -178,10 +180,10 @@ const getCustomers = async (businessId: string, { page, limit, search, status }:
 }
 
 /** Server-paged customer list with search and status filter. Reusable anywhere a customer list is needed. */
-export const useCustomers = ({ page = 1, limit = CUSTOMERS_PAGE_SIZE, search = '', status = '', enabled = true }: { page?: number; limit?: number; search?: string; status?: string; enabled?: boolean } = {}) => {
+export const useCustomers = ({ page = 1, limit = CUSTOMERS_PAGE_SIZE, search = '', status = '', startDate, endDate, enabled = true }: { page?: number; limit?: number; search?: string; status?: string; startDate?: string; endDate?: string; enabled?: boolean } = {}) => {
   const { businessId } = useCurrentBusinessId()
   const live = isLive()
-  const params = { page, limit, search, status }
+  const params = { page, limit, search, status, startDate, endDate }
   return useQuery({
     queryKey: [...queryKeys.customers, 'list', live ? businessId : 'mock', params],
     queryFn: () => (live ? getCustomers(businessId as string, params) : getMockCustomers(params)),

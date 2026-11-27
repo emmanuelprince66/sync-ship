@@ -15,6 +15,7 @@ import { itemFilters, itemTabs, useItemsPage } from './hooks/useItemsPage'
 import { ImportItemsModal } from './ImportItemsModal'
 import { ItemList } from './ItemList'
 import { SalesTable } from './SalesTable'
+import { DateRangeInputs } from '@/components/ui/DateRangeInputs'
 import { StorefrontCard } from './StorefrontCard'
 import { customDomainInfoPath } from '@/routes/paths'
 
@@ -44,6 +45,7 @@ export default function ItemsPage() {
           </div>
           <div className="flex shrink-0 items-center gap-2"><span className="text-[10px] font-bold text-[#5F7268]">{page.storefrontSource === 'VIRTUAL' ? 'On' : 'Off'}</span><Toggle enabled={page.storefrontSource === 'VIRTUAL'} onChange={enabled => page.changeSource(enabled ? 'VIRTUAL' : 'INVENTORY')} loading={page.storefrontSourceBusy} label="Show these items in your storefront"/></div>
         </div>}
+        {page.tab === 'sales' && <div className="mt-4 flex flex-wrap items-center gap-2"><span className="text-[11px] font-bold text-[#53665D]">Period</span><DateRangeInputs range={page.salesDates}/></div>}
         {page.tab === 'inventory' && <div className="no-scrollbar -mx-5 mt-4 flex gap-2 overflow-x-auto px-5 md:mx-0 md:flex-wrap md:px-0">{itemFilters.map(option => <button key={option.value} type="button" aria-pressed={page.filter === option.value} onClick={() => page.setFilter(option.value)} className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[11px] font-extrabold transition-colors ${page.filter === option.value ? 'border-[#286B43] bg-[#286B43] text-white' : 'border-[#DFE7E2] text-[#53665D] hover:bg-[#F3F7F4]'}`}>{option.label}</button>)}</div>}
         {page.isLoading
           ? <MediaCardGridSkeleton count={6} className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3"/>

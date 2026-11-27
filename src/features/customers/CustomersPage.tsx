@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/Button'
 import { PageHeader, SearchInput } from '@/components/ui/common'
+import { DateRangeInputs } from '@/components/ui/DateRangeInputs'
 import { Pagination } from '@/components/ui/Pagination'
 import { Select } from '@/components/ui/Select'
 import { SkeletonGroup, StatCardSkeleton } from '@/components/ui/Skeleton'
@@ -37,8 +38,9 @@ export default function CustomersPage() {
 
     <div className="rounded-2xl border border-[#E2EAE5] bg-white">
       <div className="flex flex-col gap-3 border-b border-[#EBF0ED] p-4 sm:flex-row sm:items-center">
-        <SearchInput value={page.searchInput} onChange={page.setSearch} placeholder="Search by name, phone or email" className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-xl border border-[#DFE7E2] px-3 text-[#7B8B83]" inputClassName="w-full bg-transparent text-xs font-semibold outline-none"/>
+        <SearchInput value={page.searchInput} onChange={page.setSearch} placeholder="Search by name, phone or email" className="flex h-10 w-full min-w-0 shrink-0 items-center gap-2 rounded-xl border border-[#DFE7E2] px-3 text-[#7B8B83] sm:w-auto sm:flex-1" inputClassName="w-full bg-transparent text-xs font-semibold outline-none"/>
         <Select aria-label="Filter by status" options={page.statusOptions} value={page.status} onValueChange={page.setStatus} className="w-full sm:w-[180px]" boxClassName="h-10 text-xs"/>
+        <DateRangeInputs range={page.dates} className="w-full justify-between sm:w-auto"/>
       </div>
       <div className={cn('transition-opacity', page.isFetching && 'opacity-60')} aria-busy={page.isFetching || undefined}>
         <CustomersTable customers={page.customers} loading={page.isLoading} emptyState={emptyState} onOpen={page.openCustomer} onEdit={page.can.edit ? page.openEdit : undefined} onDelete={page.can.delete ? page.askDelete : undefined}/>

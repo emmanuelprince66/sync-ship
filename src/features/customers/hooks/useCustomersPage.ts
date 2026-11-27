@@ -1,3 +1,4 @@
+import { useDateRange } from '@/hooks/useDateRange'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
@@ -25,7 +26,9 @@ export function useCustomersPage() {
   const debounced = useDebounce(searchInput.trim(), 500)
   // Sink only sends a search from three characters.
   const search = debounced.length >= 3 ? debounced : ''
-  const query = useCustomers({ page, limit: pageSize, search, status })
+  // Earlier records: customers added in a from/to range (start_date / end_date).
+  const dates = useDateRange(() => setPage(1))
+  const query = useCustomers({ page, limit: pageSize, search, status, ...dates.query })
   const remove = useDeleteCustomer()
 
   const customers = query.data?.customers ?? []
@@ -53,7 +56,8 @@ export function useCustomersPage() {
     isFetching: query.isFetching && !query.isLoading,
     isError: query.isError && !query.data,
     retry: () => void query.refetch(),
-    isFiltered: Boolean(search || status),
+    isFiltered: Boolean(search || status || dates.active),
+    dates,
     pagination: { page, pages: query.data?.pages ?? 1, setPage, pageSize, setPageSize: (size: number) => { setPageSize(size); setPage(1) } },
     openCustomer: (customer: Customer) => navigate(customerPath(customer.id)),
     dialog,

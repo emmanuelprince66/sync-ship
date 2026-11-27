@@ -1,3 +1,4 @@
+import { useDateRange } from '@/hooks/useDateRange'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
@@ -34,7 +35,9 @@ export function useItemsPage() {
   /** Attendants only switch items on/off and see sales; adding, editing, pricing and importing is for super admins. */
   const { canManageItems, canToggleItemAvailability } = usePermissions()
   const { data: items = [] } = useItems()
-  const { data: sales = [] } = useItemSales()
+  // Sales history for an earlier period: start_date / end_date on sale/dashboard.
+  const salesDates = useDateRange()
+  const { data: sales = [] } = useItemSales(salesDates.query)
   const { data: settings } = useBusinessSettings()
   const { data: stats } = useShipmentStats()
   const [tab, setTab] = useState<ItemsTab>('inventory')
@@ -123,6 +126,7 @@ export function useItemsPage() {
     visibleItems: pageQuery.data?.items ?? [],
     pagination: { page, pages: pageQuery.data?.pages ?? 1, pageSize, setPage, setPageSize: (size: number) => { setPageSize(size); setPage(1) } },
     visibleSales: sales.filter(row => matches(row.item.name)),
+    salesDates,
     storeUrl: settings?.storeUrl ?? '',
     toggleAvailable,
     toggleListed,

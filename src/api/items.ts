@@ -167,8 +167,12 @@ const toFormData = (fields: Record<string, unknown>, { newImages, keptMediaIds, 
 }
 
 /** Per-product sales from the sales dashboard; matched to catalog items for the image/price. */
-const getLiveItemSales = async (businessId: string): Promise<ItemSale[]> => {
-  const [response, items] = await Promise.all([apiRequest<unknown>(`sale/dashboard/${businessId}/`), fetchItemsCached(businessId).catch(() => [] as CatalogItem[])])
+const getLiveItemSales = async (businessId: string, range: { startDate?: string; endDate?: string } = {}): Promise<ItemSale[]> => {
+  const params = new URLSearchParams()
+  if (range.startDate) params.set('start_date', range.startDate)
+  if (range.endDate) params.set('end_date', range.endDate)
+  const query = params.toString() ? `?${params}` : ''
+  const [response, items] = await Promise.all([apiRequest<unknown>(`sale/dashboard/${businessId}/${query}`), fetchItemsCached(businessId).catch(() => [] as CatalogItem[])])
   return listFrom(response, ['top_selling_products', 'data.top_selling_products', 'results.top_selling_products']).map((value, index) => {
     const row = asRecord(value)
     const name = str(row.product__name) || 'Product'
@@ -502,11 +506,12 @@ export const useItems = () => {
 }
 
 /** Per-product sales (live: sale/dashboard top sellers). */
-export const useItemSales = () => {
+/** Per-item sales; a from/to range (start_date / end_date) narrows it to earlier periods. */
+export const useItemSales = (range: { startDate?: string; endDate?: string } = {}) => {
   const { businessId } = useCurrentBusinessId()
   return useQuery({
-    queryKey: [...queryKeys.itemSales, isLive() ? businessId : 'mock'],
-    queryFn: () => (isLive() ? getLiveItemSales(businessId as string) : getMockItemSales()),
+    queryKey: [...queryKeys.itemSales, isLive() ? businessId : 'mock', range.startDate ?? '', range.endDate ?? ''],
+    queryFn: () => (isLive() ? getLiveItemSales(businessId as string, range) : getMockItemSales()),
     enabled: !isLive() || Boolean(businessId),
   })
 }
