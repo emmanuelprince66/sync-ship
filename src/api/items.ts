@@ -6,7 +6,7 @@ import { apiErrorText, apiFormRequest, asRecord, at, isLive, listFrom, num, str 
 import { db } from './mock-data'
 import { queryClient } from '@/lib/query-client'
 import { queryKeys } from './query-keys'
-import type { CatalogItem, ItemMedia, ItemSale } from './types'
+import type { CatalogItem, ItemMedia, ItemSale, ItemSize } from './types'
 
 /**
  * Items = the business's Virtual Products: lightweight catalog items with no stock
@@ -27,6 +27,11 @@ import type { CatalogItem, ItemMedia, ItemSale } from './types'
  * image). A picture known only by URL (SKU lookup; the bucket has no CORS) goes as `image_url`.
  * Saves without picture changes stay JSON; card switches send only the changed flag.
  *  POST   product/virtual/{business_id}/bulk/    [row, …] → { results: [{ row, success, data | errors }] }
+ *
+ * Sizes: `variations: [{ name, price? }]` on POST/PATCH (price optional: the item's price applies); the item and
+ * the storefront answer with `variations: [{ id, name, selling_price, quantity, status }]`, and the storefront
+ * lets customers pick one. A list can't ride in multipart, so a save with picture files sends sizes in a
+ * follow-up JSON PATCH.
  */
 
 export const ITEM_MAX_IMAGES = 5
@@ -50,6 +55,8 @@ export type ItemInput = {
   imageUrl?: string
   /** Sample data only: every picture to show, in order. */
   previewUrls?: string[]
+  /** Sizes customers pick from on the storefront. */
+  sizes?: ItemSize[]
 }
 
 /** What changed in an item's pictures when it is edited. */
@@ -106,8 +113,22 @@ const mapVirtualProduct = (value: unknown): CatalogItem => {
     media,
     inStock: flag(product.availability),
     listed: flag(product.listed_on_storefront),
+    sizes: mapSizes(product.variations, num(product.price)),
   }
 }
+
+/** A size priced like the item shows no price of its own in the form. */
+const mapSizes = (value: unknown, itemPrice: number): ItemSize[] => listFrom(value, []).map(entry => {
+  const row = asRecord(entry)
+  const price = num(row.selling_price ?? row.price)
+  return { id: str(row.id) || undefined, name: str(row.name), price: price > 0 && price !== itemPrice ? String(price) : '' }
+}).filter(size => size.name)
+
+/** The `variations` body: names, plus a price only where a size costs something different. */
+export const variationsBody = (sizes: ItemSize[]) => sizes
+  .map(size => ({ name: size.name.trim(), price: Number(size.price) }))
+  .filter(size => size.name)
+  .map(size => (size.price > 0 ? size : { name: size.name }))
 
 /** Weight only when one is set: a blank weight falls back to the business's default package weight. */
 const weightField = (weight: string | undefined) => (Number(weight) > 0 ? { weight } : {})
@@ -182,10 +203,12 @@ const fetchItemsCached = (businessId: string) =>
 const addLiveItem = async (input: ItemInput) => {
   const path = `product/virtual/${requireBusinessId()}/`
   const pictures = { newImages: input.newImages ?? [] }
-  const response = needsMultipart(pictures)
-    ? await apiFormRequest<unknown>(path, 'POST', toFormData(toPayload(input), pictures))
-    : await apiRequest<unknown>(path, { method: 'POST', body: toPayload(input) })
-  return mapVirtualProduct(response)
+  const sizes = input.sizes?.length ? { variations: variationsBody(input.sizes) } : {}
+  if (!needsMultipart(pictures)) return mapVirtualProduct(await apiRequest<unknown>(path, { method: 'POST', body: { ...toPayload(input), ...sizes } }))
+  const created = mapVirtualProduct(await apiFormRequest<unknown>(path, 'POST', toFormData(toPayload(input), pictures)))
+  // Sizes can't ride in multipart: they follow as JSON once the item exists.
+  if (sizes.variations && created.productId) return mapVirtualProduct(await patchLiveItem(created.productId, sizes))
+  return created
 }
 
 const patchLiveItem = (productId: string, fields: Record<string, unknown>) =>
@@ -210,7 +233,7 @@ const addMockItem = (input: ItemInput) => {
   mockSequence += 1
   const id = Date.now() * 100 + mockSequence
   const media = mockMedia(input.previewUrls ?? (input.image ? [input.image] : []), `sample-${id}`)
-  const item: CatalogItem = { id, name: input.name, description: input.description, price: input.price || '0', weight: input.weight || '0', sku: input.sku?.trim() ?? '', image: media[0]?.url ?? '', media, inStock: input.available, listed: input.listed }
+  const item: CatalogItem = { id, name: input.name, description: input.description, price: input.price || '0', weight: input.weight || '0', sku: input.sku?.trim() ?? '', image: media[0]?.url ?? '', media, inStock: input.available, listed: input.listed, sizes: input.sizes ?? [] }
   db.items = [...db.items, item]
   return mockDelay(item)
 }
@@ -238,10 +261,13 @@ const updateItem = async ({ gallery, priceOnly, ...item }: CatalogItem & { galle
       listed_on_storefront: item.listed !== false,
       ...(item.sku?.trim() ? { sku: item.sku.trim() } : {}),
     }
+    // The edit form always sends its sizes (an empty list clears them); other saves leave them alone.
+    const sizes = item.sizes ? { variations: variationsBody(item.sizes) } : {}
     if (gallery && needsMultipart(gallery)) {
-      return mapVirtualProduct(await apiFormRequest<unknown>(`product/virtual/${requireBusinessId()}/${item.productId}/`, 'PATCH', toFormData(fields, gallery)))
+      const saved = mapVirtualProduct(await apiFormRequest<unknown>(`product/virtual/${requireBusinessId()}/${item.productId}/`, 'PATCH', toFormData(fields, gallery)))
+      return sizes.variations ? mapVirtualProduct(await patchLiveItem(item.productId, sizes)) : saved
     }
-    const response = await patchLiveItem(item.productId, gallery?.imageUrl !== undefined ? { ...fields, image_url: gallery.imageUrl } : fields)
+    const response = await patchLiveItem(item.productId, { ...(gallery?.imageUrl !== undefined ? { ...fields, image_url: gallery.imageUrl } : fields), ...sizes })
     const saved = asRecord(response).id ? mapVirtualProduct(response) : null
     return saved ?? item
   }

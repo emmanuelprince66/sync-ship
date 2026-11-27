@@ -51,6 +51,9 @@ export type PackageItem = {
 /** One saved gallery picture of an item. */
 export type ItemMedia = { id: string; url: string }
 
+/** One size customers can pick on the storefront. price '' = the item's own price. */
+export type ItemSize = { id?: string; name: string; price: string }
+
 export type CatalogItem = {
   id: number
   name: string
@@ -73,6 +76,8 @@ export type CatalogItem = {
   productId?: string
   /** Live only: units in stock. */
   quantity?: number
+  /** Sizes customers pick from (`variations`); empty when the item has none. */
+  sizes?: ItemSize[]
 }
 
 /** Per-product sales. `orders`/`last` are null when the backend doesn't report them. */

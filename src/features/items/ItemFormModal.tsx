@@ -5,6 +5,7 @@ import { Modal, ModalHeader } from '@/components/ui/Modal'
 import { TextAreaField } from '@/components/ui/TextAreaField'
 import { Toggle } from '@/components/ui/Toggle'
 import { ItemGalleryField } from './components/ItemGalleryField'
+import { SizesField } from './components/SizesField'
 import { SkuLookupField } from './components/SkuLookupField'
 import { useItemForm } from './hooks/useItemForm'
 
@@ -43,6 +44,7 @@ export function ItemFormModal({ open, item, onClose, onSaved, addDescription }: 
             <Field label="Weight" type="number" placeholder="0.0" suffix="kg" step="any" min="0" error={form.errors.weight?.message} {...form.register('weight')}/>
           </div>
           <p className="-mt-2 text-[11px] leading-4 text-[#7C8D85]">{form.usesDefaultWeight ? <><strong className="font-extrabold text-[#4D7656]">Uses your default package weight</strong> for delivery rates. Add a weight for a more accurate rate.</> : 'Weight is used to calculate delivery rates.'}</p>
+          <SizesField sizes={form.sizes}/>
           <Field label="SKU (optional)" placeholder="Your SKU or the barcode number" autoComplete="off" error={form.errors.sku?.message} {...form.register('sku')}/>
           <ItemGalleryField gallery={form.gallery}/>
           <div className="flex flex-col gap-2.5">

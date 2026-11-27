@@ -46,6 +46,7 @@ export function ItemCard({ item, onToggleAvailable, onToggleListed, onEditPrice,
         : <div className="truncate text-xs font-extrabold text-[#28483B]">{item.name}</div>}
       {item.description && <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-[#899890]">{item.description}</p>}
       {item.sku && <p className="mt-1 truncate text-[10px] font-semibold text-[#7C8D85]">SKU {item.sku}</p>}
+      {item.sizes && item.sizes.length > 0 && <div className="mt-1.5 flex flex-wrap gap-1" aria-label="Sizes">{item.sizes.slice(0, 6).map(size => <span key={size.id ?? size.name} className="rounded-md bg-[#EAF5E9] px-1.5 py-0.5 text-[9px] font-extrabold text-[#3C7F4C]">{size.name}</span>)}{item.sizes.length > 6 && <span className="px-1 text-[9px] font-bold text-[#7C8D85]">+{item.sizes.length - 6}</span>}</div>}
       <div className="mt-1.5 flex items-center justify-between">
         <span className="text-[10px] font-semibold text-[#829189]" title={Number(item.weight) ? undefined : 'Uses your default package weight'}>{Number(item.weight) ? `${item.weight} kg` : 'Default weight'}</span>
         {canManage

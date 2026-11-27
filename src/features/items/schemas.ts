@@ -26,6 +26,12 @@ export const itemFormSchema = z.object({
   sku: z.string().trim().max(64, "Keep the SKU under 64 characters"),
   available: z.boolean(),
   listed: z.boolean(),
+  /** Sizes customers pick from on the storefront; price "" = the item's price. */
+  sizes: z.array(z.object({
+    id: z.string().optional(),
+    name: z.string().trim().max(60, "Keep the size under 60 characters"),
+    price: z.string().trim().refine((value) => value === "" || Number(value) >= 0, "Price cannot be negative"),
+  })),
 });
 
 export type ItemFormValues = z.infer<typeof itemFormSchema>;
@@ -38,4 +44,5 @@ export const itemFormDefaults: ItemFormValues = {
   sku: "",
   available: true,
   listed: true,
+  sizes: [],
 };

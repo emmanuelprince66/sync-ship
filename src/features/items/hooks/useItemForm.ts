@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect } from 'react'
-import { useForm, useWatch } from 'react-hook-form'
+import { useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { apiErrorText } from '@/api/http'
 import { useAddItem, useUpdateItem, type SkuProduct } from '@/api/items'
@@ -10,7 +10,7 @@ import { useItemGallery } from './useItemGallery'
 import { useSkuPrefill } from './useSkuPrefill'
 
 const toValues = (item: CatalogItem | null): ItemFormValues => (item
-  ? { name: item.name, description: item.description ?? '', price: item.price, weight: Number(item.weight) ? item.weight : '', sku: item.sku ?? '', available: item.inStock, listed: item.listed !== false }
+  ? { name: item.name, description: item.description ?? '', price: item.price, weight: Number(item.weight) ? item.weight : '', sku: item.sku ?? '', available: item.inStock, listed: item.listed !== false, sizes: (item.sizes ?? []).map(size => ({ id: size.id, name: size.name, price: size.price })) }
   : itemFormDefaults)
 
 /**
@@ -24,6 +24,17 @@ export function useItemForm({ open, item, onClose, onSaved }: { open: boolean; i
   const { reset, setValue, control, register, handleSubmit, formState: { errors } } = form
   const [available, listed, weight] = useWatch({ control, name: ['available', 'listed', 'weight'] })
   const gallery = useItemGallery()
+  const sizeRows = useFieldArray({ control, name: 'sizes' })
+  const cleanSizes = (sizes: ItemFormValues['sizes']) => {
+    // Blank rows are dropped; the same size typed twice is kept once.
+    const seen = new Set<string>()
+    return sizes.map(size => ({ ...size, name: size.name.trim() })).filter(size => {
+      const key = size.name.toLowerCase()
+      if (!key || seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+  }
 
   const fillFromSku = async (product: SkuProduct) => {
     const filled = ['name']
@@ -49,14 +60,14 @@ export function useItemForm({ open, item, onClose, onSaved }: { open: boolean; i
     const onError = (error: unknown) => toast.error(apiErrorText(error, 'Could not save the item'))
     if (item) {
       updateItem.mutate(
-        { ...item, name: values.name.trim(), description: values.description.trim(), price: values.price, weight: values.weight || '0', sku: values.sku, inStock: values.available, listed: values.listed, gallery: gallery.toChange(true) },
+        { ...item, name: values.name.trim(), description: values.description.trim(), price: values.price, weight: values.weight || '0', sku: values.sku, inStock: values.available, listed: values.listed, sizes: cleanSizes(values.sizes), gallery: gallery.toChange(true) },
         { onSuccess: saved => { toast.success('Item updated'); onSaved?.(saved); onClose() }, onError },
       )
       return
     }
     const pictures = gallery.toChange(false)
     addItem.mutate(
-      { ...values, sku: values.sku || sku.sku.trim(), image: pictures?.previewUrls[0] ?? '', newImages: pictures?.newImages, imageUrl: pictures?.imageUrl ?? undefined, previewUrls: pictures?.previewUrls },
+      { ...values, sizes: cleanSizes(values.sizes), sku: values.sku || sku.sku.trim(), image: pictures?.previewUrls[0] ?? '', newImages: pictures?.newImages, imageUrl: pictures?.imageUrl ?? undefined, previewUrls: pictures?.previewUrls },
       { onSuccess: created => { toast.success(`${created.name} added to your items`); onSaved?.(created); onClose() }, onError },
     )
   })
@@ -70,6 +81,19 @@ export function useItemForm({ open, item, onClose, onSaved }: { open: boolean; i
     listed,
     /** Blank (or 0) weight: the backend uses the business's default package weight. */
     usesDefaultWeight: !(Number(weight) > 0),
+    /** Sizes customers pick from: type a name and add it; a price only when it costs differently. */
+    sizes: {
+      rows: sizeRows.fields,
+      add: (name: string) => {
+        const clean = name.trim()
+        if (!clean) return
+        if (form.getValues('sizes').some(size => size.name.trim().toLowerCase() === clean.toLowerCase())) return
+        sizeRows.append({ name: clean, price: '' })
+      },
+      remove: sizeRows.remove,
+      register: (index: number, field: 'name' | 'price') => register(`sizes.${index}.${field}`),
+      error: (index: number) => errors.sizes?.[index]?.name?.message ?? errors.sizes?.[index]?.price?.message,
+    },
     setAvailable: (value: boolean) => setValue('available', value),
     setListed: (value: boolean) => setValue('listed', value),
     isEdit: Boolean(item),
