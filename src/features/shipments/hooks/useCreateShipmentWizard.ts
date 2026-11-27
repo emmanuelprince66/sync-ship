@@ -416,7 +416,8 @@ export function useCreateShipmentWizard() {
     canNativeShare,
     nativeShare: async () => {
       if (!checkoutLink || !canNativeShare) return
-      try { await navigator.share({ title: 'Checkout link', text: shareText, url: checkoutLink }) } catch { /* dismissed */ }
+      // The link is already in the text; passing it as `url` too makes WhatsApp show it twice.
+      try { await navigator.share({ text: shareText }) } catch { /* dismissed */ }
     },
     openLink: () => { if (checkoutLink) window.open(checkoutLink, '_blank', 'noopener') },
     trackShipment: () => navigate(paths.tracking),

@@ -58,8 +58,19 @@ export function useCheckoutLink() {
   }
 }
 
-/** Share text for WhatsApp / the native share sheet. */
-export const checkoutMessage = (storeName: string, products: PackageItem[], link: string) => {
+/**
+ * Share text for WhatsApp / the native share sheet, worded as the team sends it from sink. The link sits on a
+ * line of its own: WhatsApp previews the first link in a message, and the storefront page gives that preview
+ * its "Sync Store Front" title and store icon.
+ */
+export const checkoutMessage = (_storeName: string, products: PackageItem[], link: string) => {
   const names = products.map(product => `${Number(product.quantity) > 1 ? `${product.quantity} × ` : ''}${product.name}`).join(', ')
-  return `Hi! Here’s your checkout link${storeName ? ` from ${storeName}` : ''} for ${names}. Add your delivery address, choose a delivery option and pay securely: ${link}`
+  return [
+    `Hi! Your order for ${names} has been placed.`,
+    '',
+    'To complete it, kindly click on the link to add your address, choose your delivery option and pay securely:',
+    link,
+    '',
+    'Once this is done, your order will be processed.',
+  ].join('\n')
 }
