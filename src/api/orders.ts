@@ -86,14 +86,16 @@ export const mapOrder = (value: unknown): Shipment => {
 }
 
 /** paymentMethod 'BNPL' mirrors sink's Orders payment-method filter. */
-export type OrdersQuery = { search?: string; status?: ShipmentStatus; paymentMethod?: 'BNPL'; page?: number; limit?: number }
+export type OrdersQuery = { search?: string; status?: ShipmentStatus; paymentMethod?: 'BNPL'; page?: number; limit?: number; /** YYYY-MM-DD, inclusive (start_date / end_date). */ startDate?: string; endDate?: string }
 export type OrdersPage = { shipments: Shipment[]; stats: DashboardStats; total: number; pages: number }
 
-export const fetchOrders = async (businessId: string, { search, status, paymentMethod, page = 1, limit = 50 }: OrdersQuery = {}): Promise<OrdersPage> => {
+export const fetchOrders = async (businessId: string, { search, status, paymentMethod, page = 1, limit = 50, startDate, endDate }: OrdersQuery = {}): Promise<OrdersPage> => {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) })
   if (search) params.set('search', search)
   if (status) params.set('shipping_status', toBackendStatus(status))
   if (paymentMethod) params.set('payment_method', paymentMethod)
+  if (startDate) params.set('start_date', startDate)
+  if (endDate) params.set('end_date', endDate)
   const response = await apiRequest<unknown>(`order/orders/${businessId}/all?${params}`)
   const root = asRecord(response)
   const results = asRecord(root.results)

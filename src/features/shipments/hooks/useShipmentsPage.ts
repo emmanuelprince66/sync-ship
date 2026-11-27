@@ -17,12 +17,17 @@ export function useShipmentsPage(tracking: boolean) {
   const [pageSize, setPageSize] = useState(20)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusTerm, setStatusTerm] = useState('All statuses')
+  // Earlier records: an inclusive from/to range sent to the server (start_date / end_date).
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const shipmentsQuery = useShipmentsPageQuery({
     page,
     limit: pageSize,
     search: searchTerm.trim() || undefined,
     status: statusTerm === 'All statuses' ? undefined : (statusTerm as ShipmentStatus),
     paymentMethod: payment === 'BNPL' ? 'BNPL' : undefined,
+    startDate: startDate || undefined,
+    endDate: endDate || undefined,
   })
   const { data: stats, isLoading: statsLoading } = useShipmentStats()
   const shipments = shipmentsQuery.data?.shipments ?? []
@@ -49,6 +54,13 @@ export function useShipmentsPage(tracking: boolean) {
     filters,
     payment,
     setPayment: (value: string) => { setPayment(value as PaymentFilter); setPage(1) },
+    dates: {
+      startDate,
+      endDate,
+      setStartDate: (value: string) => { setStartDate(value); setPage(1) },
+      setEndDate: (value: string) => { setEndDate(value); setPage(1) },
+      clear: () => { setStartDate(''); setEndDate(''); setPage(1) },
+    },
     pagination: { page, pages: shipmentsQuery.data?.pages ?? 1, pageSize, setPage, setPageSize: (size: number) => { setPageSize(size); setPage(1) } },
     drawer,
     statusRef,
